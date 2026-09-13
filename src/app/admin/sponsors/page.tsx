@@ -9,8 +9,8 @@ type Sponsor = {
   name: string;
   tier: string;
   description: string | null;
-  logoUrl?: string;
-  websiteUrl?: string;
+  logoUrl?: string | null;
+  websiteUrl?: string | null;
 };
 
 export default function AdminSponsorsPage() {
