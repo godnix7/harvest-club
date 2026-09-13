@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  date        DateTime
+  venue       String?
+  description String
+  coverImage  String?
+  category    String
+  status      String   @default("UPCOMING") // UPCOMING, ONGOING, COMPLETED
+  highlights  String?
+  results     String?
+  photos      String?
+  isFeatured  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SiteSettings {
+  id               String   @id @default("global")
+  showAboutPreview Boolean  @default(true)
+  showActivities   Boolean  @default(true)
+  showSponsors     Boolean  @default(true)
+  showCTA          Boolean  @default(true)
+  updatedAt        DateTime @updatedAt
+}
+
+model TeamMember {
+  id         String   @id @default(cuid())
+  name       String
+  position   String
+  department String?
+  bio        String?
+  photoUrl   String?
+  socialLinks String? // JSON string
+  category   String   @default("CORE") // FACULTY, EXECUTIVE, CORE, PREVIOUS
+  year       String?
+  orderIndex Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Sponsor {
+  id          String   @id @default(cuid())
+  name        String
+  tier        String   @default("PARTNER") // TITLE, PLATINUM, GOLD, SILVER, PARTNER
+  description String?
+  logoUrl     String?
+  websiteUrl  String?
+  orderIndex  Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model GalleryImage {
+  id        String   @id @default(cuid())
+  url       String
+  caption   String?
+  category  String   @default("ALL") // HACKATHON, WORKSHOP, SEMINAR, INDUSTRIAL_VISIT, OTHER
+  albumId   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Announcement {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  category    String?
+  isFeatured  Boolean  @default(false)
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String?
+  message   String
+  status    String   @default("UNREAD")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
