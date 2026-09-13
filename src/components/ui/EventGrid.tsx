@@ -7,7 +7,7 @@ import Image from "next/image";
 type Event = {
   id: string;
   title: string;
-  date: string;
+  date: string | Date;
   category: string;
   description: string;
   coverImage?: string | null;

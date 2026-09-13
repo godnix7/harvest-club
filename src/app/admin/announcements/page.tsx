@@ -6,9 +6,9 @@ import { createAnnouncement, deleteAnnouncement, getAnnouncements } from "./acti
 type Announcement = {
   id: string;
   title: string;
-  category: string;
+  category: string | null;
   isFeatured: boolean;
-  createdAt: string;
+  createdAt: string | Date;
 };
 
 export default function AdminAnnouncementsPage() {

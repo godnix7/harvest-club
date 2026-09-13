@@ -8,7 +8,7 @@ type Sponsor = {
   id: string;
   name: string;
   tier: string;
-  description: string;
+  description: string | null;
   logoUrl?: string;
   websiteUrl?: string;
 };

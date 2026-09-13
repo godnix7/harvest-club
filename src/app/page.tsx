@@ -11,10 +11,12 @@ export default async function Home() {
   
   if (!settings) {
     settings = {
+      id: "global",
       showAboutPreview: true,
       showActivities: true,
       showSponsors: true,
       showCTA: true,
+      updatedAt: new Date(),
     };
   }
 
