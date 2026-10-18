@@ -77,6 +77,11 @@ export async function verifySessionToken(token: string | undefined): Promise<boo
   return (await readSessionToken(token)) !== null;
 }
 
+/** Returns whether the current request has a valid signed admin session. */
+export async function isAdmin(): Promise<boolean> {
+  return (await getSession()) !== null;
+}
+
 /** Session from the cookie (signature + expiry only). Use currentAdmin() for the full check. */
 export async function getSession(): Promise<Session | null> {
   const store = await cookies();

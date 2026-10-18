@@ -41,13 +41,17 @@ export async function login(formData: FormData) {
 
   attempts.delete(key);
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, await createSessionToken(), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: SESSION_MAX_AGE,
-    path: "/",
-  });
+  cookieStore.set(
+    SESSION_COOKIE,
+    await createSessionToken({ role: "super", email: email.trim().toLowerCase() }),
+    {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: SESSION_MAX_AGE,
+      path: "/",
+    }
+  );
 
   redirect("/admin");
 }
