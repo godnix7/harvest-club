@@ -92,3 +92,16 @@ model ContactMessage {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// Normal administrators (team members, faculty). The Super Admin is configured via
+// ADMIN_EMAIL / ADMIN_PASSWORD environment variables and is not stored here.
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
