@@ -76,3 +76,27 @@ export function httpUrl(value: string | null): string | null | false {
     return false;
   }
 }
+
+/** Optional email: returns null when empty, false when invalid. */
+export function optionalEmail(value: string | null): string | null | false {
+  if (!value) return null;
+  const v = value.trim().toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) && v.length <= 200 ? v : false;
+}
+
+/** Optional phone: digits with optional +, spaces, dashes, brackets (7–15 digits). */
+export function optionalPhone(value: string | null): string | null | false {
+  if (!value) return null;
+  const v = value.trim();
+  const digits = v.replace(/\D/g, "");
+  return /^[+(\d][\d\s\-()]*$/.test(v) && digits.length >= 7 && digits.length <= 15 ? v : false;
+}
+
+/** Link for an announcement button: a site path ("/events/abc") or an http(s) URL. */
+export function optionalLink(value: string | null): string | null | false {
+  if (!value) return null;
+  const v = value.trim();
+  if (v.startsWith("/") && !v.startsWith("//")) return v.length <= 300 ? v : false;
+  const url = httpUrl(v);
+  return url === null ? null : url;
+}

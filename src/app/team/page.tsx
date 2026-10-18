@@ -1,9 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Metadata } from "next";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Mail, Phone } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
-import { prisma, safe, initials, safeUrl, TEAM_CATEGORIES } from "@/lib/site";
+import { prisma, safe, initials, safeUrl, telHref, TEAM_CATEGORIES } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Team",
@@ -77,6 +77,20 @@ export default async function TeamPage() {
                       <p className="mt-0.5 text-sm font-medium text-[var(--color-harvest-green)]">{m.position}</p>
                       {m.department && <p className="mt-1 text-xs text-[var(--color-muted)]">{m.department}</p>}
                       {m.bio && <p className="mt-3 line-clamp-3 text-sm text-[var(--color-muted)]">{m.bio}</p>}
+                      {(m.email || m.phone) && (
+                        <div className="mt-3 flex flex-wrap justify-center gap-2">
+                          {m.email && (
+                            <a href={`mailto:${m.email}`} aria-label={`Email ${m.name}`} className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[var(--color-line)] px-3 text-xs font-semibold text-[var(--color-harvest-blue)] hover:border-[var(--color-harvest-blue)]">
+                              <Mail size={14} /> Email
+                            </a>
+                          )}
+                          {m.phone && (
+                            <a href={telHref(m.phone)} aria-label={`Call ${m.name}`} className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[var(--color-line)] px-3 text-xs font-semibold text-[var(--color-harvest-green-dark)] hover:border-[var(--color-harvest-green)]">
+                              <Phone size={14} /> Call
+                            </a>
+                          )}
+                        </div>
+                      )}
                       {profile && (
                         <a href={profile} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-xs font-semibold text-[var(--color-harvest-blue)] hover:underline">
                           LinkedIn profile

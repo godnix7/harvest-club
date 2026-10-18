@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowRight, Calendar, Users, Lightbulb, Handshake } from "lucide-react";
 import HeroSection from "@/components/ui/HeroSection";
 import { EventGrid } from "@/components/ui/EventGrid";
-import { prisma, safe, formatDate, safeUrl } from "@/lib/site";
+import { prisma, safe, formatDate, safeUrl, safeLink } from "@/lib/site";
 
 export const revalidate = 60;
 
@@ -122,6 +122,16 @@ export default async function Home() {
                   <div>
                     <p className="font-semibold text-[var(--color-ink)]">{a.title}</p>
                     <p className="mt-1 line-clamp-1 text-sm text-[var(--color-muted)]">{a.description}</p>
+                    {(() => {
+                      const link = safeLink(a.linkUrl);
+                      if (!link) return null;
+                      const label = (a.linkLabel || "Learn more") + " →";
+                      return link.external ? (
+                        <a href={link.href} target="_blank" rel="noopener noreferrer" className="mt-1.5 inline-block text-sm font-semibold text-[var(--color-harvest-green)] hover:underline">{label}</a>
+                      ) : (
+                        <Link href={link.href} className="mt-1.5 inline-block text-sm font-semibold text-[var(--color-harvest-green)] hover:underline">{label}</Link>
+                      );
+                    })()}
                   </div>
                   <time className="shrink-0 text-xs text-[var(--color-muted)]">{formatDate(a.createdAt)}</time>
                 </li>

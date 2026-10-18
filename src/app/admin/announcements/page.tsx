@@ -3,13 +3,17 @@ import type { Metadata } from "next";
 import { prisma, safe, formatDate } from "@/lib/site";
 import { AdminHeader, Empty, StatusBadge } from "../_components/AdminPage";
 import { AdminForm, ActionButton, Field } from "../_components/controls";
+import LinkFields from "./LinkFields";
 import { saveAnnouncement, setPublished, deleteAnnouncement } from "./actions";
 
 export const metadata: Metadata = { title: "Announcements" };
 
 export default async function AdminAnnouncementsPage({ searchParams }: { searchParams: Promise<{ edit?: string }> }) {
   const { edit } = await searchParams;
-  const items = await safe(() => prisma.announcement.findMany({ orderBy: { createdAt: "desc" } }), []);
+  const [items, events] = await Promise.all([
+    safe(() => prisma.announcement.findMany({ orderBy: { createdAt: "desc" } }), []),
+    safe(() => prisma.event.findMany({ orderBy: { date: "desc" }, take: 50, select: { id: true, title: true } }), []),
+  ]);
   const editing = edit ? items.find((a) => a.id === edit) : undefined;
 
   return (
@@ -31,6 +35,7 @@ export default async function AdminAnnouncementsPage({ searchParams }: { searchP
             <Field label="Title *"><input name="title" required defaultValue={editing?.title} className="field" /></Field>
             <Field label="Category" hint="e.g. Event, Registration, General"><input name="category" defaultValue={editing?.category ?? ""} className="field" /></Field>
             <Field label="Message *"><textarea name="description" rows={6} required defaultValue={editing?.description} className="field" /></Field>
+            <LinkFields events={events} initialUrl={editing?.linkUrl} initialLabel={editing?.linkLabel} />
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="isPublished" defaultChecked={editing ? editing.isPublished : true} className="h-4 w-4 accent-[var(--color-harvest-green)]" />
               Published (visible on the website)
@@ -52,7 +57,7 @@ export default async function AdminAnnouncementsPage({ searchParams }: { searchP
                 {items.length === 0 && <tr><td colSpan={4}><Empty>No announcements yet.</Empty></td></tr>}
                 {items.map((a) => (
                   <tr key={a.id}>
-                    <td className="admin-td"><p className="font-medium">{a.title}</p><p className="text-xs text-[var(--color-muted)]">{a.category || "General"}{a.isFeatured && " · Featured"}</p></td>
+                    <td className="admin-td"><p className="font-medium">{a.title}</p><p className="text-xs text-[var(--color-muted)]">{a.category || "General"}{a.isFeatured && " · Featured"}{a.linkUrl && " · Has link"}</p></td>
                     <td className="admin-td whitespace-nowrap">{formatDate(a.createdAt)}</td>
                     <td className="admin-td"><StatusBadge tone={a.isPublished ? "green" : "amber"}>{a.isPublished ? "Published" : "Draft"}</StatusBadge></td>
                     <td className="admin-td">

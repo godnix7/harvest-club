@@ -41,6 +41,8 @@ model TeamMember {
   bio        String?
   photoUrl   String?
   socialLinks String? // JSON string
+  email      String?
+  phone      String?
   category   String   @default("CORE") // FACULTY, EXECUTIVE, CORE, PREVIOUS
   year       String?
   orderIndex Int      @default(0)
@@ -76,6 +78,8 @@ model Announcement {
   title       String
   description String
   category    String?
+  linkUrl     String?
+  linkLabel   String?
   isFeatured  Boolean  @default(false)
   isPublished Boolean  @default(true)
   createdAt   DateTime @default(now())

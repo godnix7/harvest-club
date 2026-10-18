@@ -53,3 +53,16 @@ export function safeUrl(url?: string | null): string | null {
     return null;
   }
 }
+
+/** Resolves a stored announcement link into an href and whether it leaves the site. */
+export function safeLink(url?: string | null): { href: string; external: boolean } | null {
+  if (!url) return null;
+  if (url.startsWith("/") && !url.startsWith("//")) return { href: url, external: false };
+  const external = safeUrl(url);
+  return external ? { href: external, external: true } : null;
+}
+
+/** tel: href from a display phone number. */
+export function telHref(phone: string): string {
+  return "tel:" + phone.replace(/[^\d+]/g, "");
+}

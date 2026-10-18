@@ -51,6 +51,11 @@ export default async function AdminTeamPage({ searchParams }: { searchParams: Pr
             </div>
             <Field label="Short bio"><textarea name="bio" rows={3} defaultValue={editing?.bio ?? ""} className="field" /></Field>
             <Field label="LinkedIn URL"><input type="url" name="linkedin" defaultValue={linkedinOf(editing?.socialLinks)} placeholder="https://linkedin.com/in/…" className="field" /></Field>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+              <Field label="Email (optional)"><input type="email" name="email" defaultValue={editing?.email ?? ""} placeholder="name@college.edu" className="field" /></Field>
+              <Field label="Mobile number (optional)"><input type="tel" name="phone" defaultValue={editing?.phone ?? ""} placeholder="+91 98765 43210" className="field" /></Field>
+            </div>
+            <p className="-mt-2 text-xs text-[var(--color-muted)]">Email and mobile are shown publicly on the Team page. Leave them blank if the person prefers not to share.</p>
             <ImageField label="Photo" current={editing?.photoUrl} />
           </AdminForm>
         </section>
@@ -65,7 +70,7 @@ export default async function AdminTeamPage({ searchParams }: { searchParams: Pr
                 {members.length === 0 && <tr><td colSpan={4}><Empty>No team members yet. Add your faculty coordinators and committee first.</Empty></td></tr>}
                 {members.map((m) => (
                   <tr key={m.id}>
-                    <td className="admin-td"><p className="font-medium">{m.name}</p><p className="text-xs text-[var(--color-muted)]">{m.position}{m.year ? ` · ${m.year}` : ""}</p></td>
+                    <td className="admin-td"><p className="font-medium">{m.name}</p><p className="text-xs text-[var(--color-muted)]">{m.position}{m.year ? ` · ${m.year}` : ""}</p>{(m.email || m.phone) && <p className="text-xs text-[var(--color-muted)]">{[m.email, m.phone].filter(Boolean).join(" · ")}</p>}</td>
                     <td className="admin-td"><StatusBadge tone={m.category === "PREVIOUS" ? "gray" : "green"}>{TEAM_CATEGORIES[m.category] ?? m.category}</StatusBadge></td>
                     <td className="admin-td">{m.orderIndex}</td>
                     <td className="admin-td">

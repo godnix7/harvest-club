@@ -1,6 +1,8 @@
 import { Metadata } from "next";
 import PageHeader from "@/components/ui/PageHeader";
-import { prisma, safe, formatDate } from "@/lib/site";
+import Link from "next/link";
+import { ArrowRight, ExternalLink } from "lucide-react";
+import { prisma, safe, formatDate, safeLink } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Announcements",
@@ -31,6 +33,20 @@ export default async function AnnouncementsPage() {
             </div>
             <h2 className="font-display mt-3 text-2xl font-bold">{a.title}</h2>
             <p className="mt-2 whitespace-pre-wrap leading-relaxed text-[var(--color-muted)]">{a.description}</p>
+            {(() => {
+              const link = safeLink(a.linkUrl);
+              if (!link) return null;
+              const label = a.linkLabel || "Learn more";
+              return link.external ? (
+                <a href={link.href} target="_blank" rel="noopener noreferrer" className="btn-primary mt-5 w-full sm:w-auto">
+                  {label} <ExternalLink size={15} />
+                </a>
+              ) : (
+                <Link href={link.href} className="btn-primary mt-5 w-full sm:w-auto">
+                  {label} <ArrowRight size={15} />
+                </Link>
+              );
+            })()}
           </article>
         ))}
       </div>
