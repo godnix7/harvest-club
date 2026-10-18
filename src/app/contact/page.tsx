@@ -7,6 +7,32 @@ import PageHeader from "@/components/ui/PageHeader";
 const email = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
 const location = process.env.NEXT_PUBLIC_CLUB_LOCATION;
 
+const web3Key = process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY;
+
+/** Sends the message to the developer via Web3Forms. Returns true on success; never throws. */
+async function sendToWeb3Forms(data: Record<string, FormDataEntryValue>): Promise<boolean> {
+  if (!web3Key) return false;
+  try {
+    const res = await fetch("https://api.web3forms.com/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        access_key: web3Key,
+        subject: String(data.subject || "").trim() || "New message from the Harvest Club website",
+        from_name: "Harvest Club Website",
+        name: data.name,
+        email: data.email,
+        message: data.message,
+        botcheck: data.website ? "1" : "",
+      }),
+    });
+    const result = await res.json().catch(() => ({}));
+    return res.ok && result.success === true;
+  } catch {
+    return false;
+  }
+}
+
 export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
@@ -21,14 +47,30 @@ export default function ContactPage() {
     const form = e.currentTarget;
     const fd = new FormData(form);
 
+    const payload = Object.fromEntries(fd);
     try {
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(Object.fromEntries(fd)),
-      });
-      const result = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(result.error || "Failed to send message.");
+      // 1) Save to our database so the message appears in the admin Messages inbox.
+      let saved = false;
+      try {
+        const res = await fetch("/api/contact", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const result = await res.json().catch(() => ({}));
+        if (res.ok) saved = true;
+        // Validation / rate-limit errors (4xx) are final: show them and stop.
+        else if (res.status >= 400 && res.status < 500) throw new Error(result.error || "Failed to send message.");
+      } catch (err) {
+        if (err instanceof Error && err.message !== "Failed to fetch" && !/NetworkError|Load failed/i.test(err.message)) throw err;
+      }
+
+      // 2) Email the developer through Web3Forms (must be sent from the browser on the free plan).
+      const emailed = await sendToWeb3Forms(payload);
+
+      if (!saved && !emailed) {
+        throw new Error("Sorry, we could not send your message right now. Please try again in a few minutes.");
+      }
       setStatus("success");
       form.reset();
     } catch (err) {

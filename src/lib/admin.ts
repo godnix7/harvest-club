@@ -1,10 +1,17 @@
-import { isAdmin } from "@/lib/auth";
+import { currentAdmin } from "@/lib/session";
 
 export type ActionResult = { success?: true; error?: string };
 
-/** Returns an error result when the caller is not an authenticated admin. */
+/** Returns an error result when the caller is not an active, signed-in admin. */
 export async function guard(): Promise<ActionResult | null> {
-  return (await isAdmin()) ? null : { error: "Your session has expired. Please sign in again." };
+  return (await currentAdmin()) ? null : { error: "Your session has expired. Please sign in again." };
+}
+
+/** Like guard(), but only the Super Admin passes. */
+export async function guardSuper(): Promise<ActionResult | null> {
+  const admin = await currentAdmin();
+  if (!admin) return { error: "Your session has expired. Please sign in again." };
+  return admin.role === "super" ? null : { error: "Only the Super Admin can do this." };
 }
 
 export function text(fd: FormData, key: string): string {

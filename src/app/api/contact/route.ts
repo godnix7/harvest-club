@@ -5,48 +5,6 @@ import { sendEmail } from "@/lib/email";
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-async function sendToWeb3Forms({
-  name,
-  email,
-  subject,
-  message,
-}: {
-  name: string;
-  email: string;
-  subject: string;
-  message: string;
-}) {
-  const accessKey = process.env.WEB3FORMS_ACCESS_KEY;
-  if (!accessKey) {
-    console.warn("WEB3FORMS_ACCESS_KEY not configured. Skipping Web3Forms dispatch.");
-    return { success: true, skipped: true };
-  }
-
-  try {
-    const response = await fetch("https://api.web3forms.com/submit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        access_key: accessKey,
-        name,
-        email,
-        subject: subject || "New message",
-        message,
-        replyto: email,
-      }),
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok || result.success !== true) {
-      console.error("Web3Forms dispatch failed:", result);
-      return { success: false };
-    }
-    return { success: true };
-  } catch (error) {
-    console.error("Web3Forms dispatch error:", error);
-    return { success: false };
-  }
-}
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -106,10 +64,6 @@ export async function POST(request: Request) {
     });
     if (!emailResult.success) {
       console.error("Notification email failed; message is saved in the database.");
-    }
-    const web3FormsResult = await sendToWeb3Forms({ name, email, subject, message });
-    if (!web3FormsResult.success) {
-      console.error("Web3Forms notification failed; message is saved in the database.");
     }
 
     return NextResponse.json({ success: true, message: "Message received." }, { status: 201 });

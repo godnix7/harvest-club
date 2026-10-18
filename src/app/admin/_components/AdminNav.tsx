@@ -4,10 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, CalendarDays, Users, Image as ImageIcon, Handshake,
-  Megaphone, Inbox, Settings, ExternalLink, LogOut,
+  Megaphone, Inbox, Settings, ExternalLink, LogOut, ShieldCheck, UserCog,
 } from "lucide-react";
 
-const items = [
+type Item = { href: string; label: string; icon: typeof Users; superOnly?: boolean; adminOnly?: boolean };
+
+const items: Item[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/events", label: "Events", icon: CalendarDays },
   { href: "/admin/team", label: "Team", icon: Users },
@@ -16,9 +18,21 @@ const items = [
   { href: "/admin/announcements", label: "Announcements", icon: Megaphone },
   { href: "/admin/messages", label: "Messages", icon: Inbox },
   { href: "/admin/settings", label: "Site settings", icon: Settings },
+  { href: "/admin/users", label: "Admin users", icon: ShieldCheck, superOnly: true },
+  { href: "/admin/account", label: "My account", icon: UserCog, adminOnly: true },
 ];
 
-export default function AdminNav({ email, unread }: { email: string; unread: number }) {
+export default function AdminNav({
+  name,
+  email,
+  role,
+  unread,
+}: {
+  name: string;
+  email: string;
+  role: "super" | "admin";
+  unread: number;
+}) {
   const pathname = usePathname();
   const active = (href: string) => (href === "/admin" ? pathname === "/admin" : pathname.startsWith(href));
 
@@ -27,11 +41,13 @@ export default function AdminNav({ email, unread }: { email: string; unread: num
       <div className="border-b border-white/10 px-5 py-3 md:py-5">
         <p className="font-display text-lg font-bold text-white">Harvest Club</p>
         <p className="text-xs uppercase tracking-widest text-[var(--color-harvest-accent)]">Admin console</p>
-        <p className="mt-3 truncate text-xs text-blue-300">{email}</p>
+        <p className="mt-3 truncate text-sm font-semibold text-white">{name}</p>
+        <p className="truncate text-xs text-blue-300">{email}</p>
+        <span className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${role === "super" ? "bg-[var(--color-harvest-accent)] text-[var(--color-harvest-blue-dark)]" : "bg-white/15 text-white"}`}>{role === "super" ? "Super admin" : "Admin"}</span>
       </div>
 
       <nav aria-label="Admin" className="flex gap-1 overflow-x-auto p-3 md:flex-1 md:flex-col md:overflow-y-auto">
-        {items.map(({ href, label, icon: Icon }) => (
+        {items.filter((i) => (i.superOnly ? role === "super" : i.adminOnly ? role === "admin" : true)).map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}

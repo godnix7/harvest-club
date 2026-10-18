@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { isAdmin } from "@/lib/auth";
+import { currentAdmin } from "@/lib/session";
 
 export const runtime = "nodejs";
 
@@ -16,7 +16,7 @@ const TYPES: Record<string, string> = {
 const MAX_BYTES = 4 * 1024 * 1024;
 
 export async function POST(request: Request) {
-  if (!(await isAdmin())) {
+  if (!(await currentAdmin())) {
     return NextResponse.json({ error: "Your session has expired. Please sign in again." }, { status: 401 });
   }
 
