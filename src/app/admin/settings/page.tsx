@@ -33,7 +33,7 @@ function Toggle({ name, title, text, checked }: { name: string; title: string; t
 
 export default async function AdminSettingsPage() {
   const admin = await currentAdmin();
-  if (admin?.role !== "super") redirect("/admin");
+  if (!admin?.canEditSettings) redirect("/admin");
 
   let s: Awaited<ReturnType<typeof prisma.siteSettings.findUnique>> = null;
   let loadError = false;

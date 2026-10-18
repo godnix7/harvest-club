@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import {
-  guardSuper, text, optional, errorMessage, httpUrl, optionalEmail, optionalPhone, optionalLink,
+  guardSettings, text, optional, errorMessage, httpUrl, optionalEmail, optionalPhone, optionalLink,
   type ActionResult,
 } from "@/lib/admin";
 
@@ -13,7 +13,7 @@ const LIMITS: Record<string, number> = {
 };
 
 export async function updateSiteSettings(fd: FormData): Promise<ActionResult> {
-  const denied = await guardSuper();
+  const denied = await guardSettings();
   if (denied) return denied;
 
   for (const [key, max] of Object.entries(LIMITS)) {

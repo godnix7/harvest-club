@@ -11,8 +11,8 @@ function linkedinOf(json?: string | null) {
   try { return json ? (JSON.parse(json).linkedin as string | undefined) ?? "" : ""; } catch { return ""; }
 }
 
-export default async function AdminTeamPage({ searchParams }: { searchParams: Promise<{ edit?: string }> }) {
-  const { edit } = await searchParams;
+export default async function AdminTeamPage({ searchParams }: { searchParams: Promise<{ edit?: string; group?: string }> }) {
+  const { edit, group } = await searchParams;
   const [members, groups] = await Promise.all([
     safe(() => prisma.teamMember.findMany({ orderBy: [{ category: "asc" }, { orderIndex: "asc" }, { createdAt: "asc" }] }), []),
     safe(() => prisma.teamGroup.findMany({ orderBy: [{ orderIndex: "asc" }, { name: "asc" }] }), []),
@@ -22,7 +22,7 @@ export default async function AdminTeamPage({ searchParams }: { searchParams: Pr
 
   return (
     <div>
-      <AdminHeader title="Team" description="Faculty, leadership, wing teams, resource persons and previous teams shown on the website.">
+      <AdminHeader title="Team" description="Faculty, leadership, wing teams and previous teams shown on the website.">
         <Link href="/admin/team/groups" className="btn-outline">Manage teams / wings</Link>
       </AdminHeader>
       <div className="grid gap-8 xl:grid-cols-3">
@@ -31,8 +31,13 @@ export default async function AdminTeamPage({ searchParams }: { searchParams: Pr
             <h2 className="font-semibold">{editing ? "Edit member" : "Add member"}</h2>
             {editing && <Link href="/admin/team" className="text-sm text-[var(--color-harvest-blue)] hover:underline">Cancel</Link>}
           </div>
+          {!editing && group && groupName.has(group) && (
+            <p className="mb-4 rounded-lg bg-[var(--color-paper)] px-3 py-2 text-sm">
+              Adding a member to <strong>{groupName.get(group)}</strong>. <Link href="/admin/team" className="text-[var(--color-harvest-blue)] hover:underline">Clear</Link>
+            </p>
+          )}
           <AdminForm
-            key={editing?.id ?? "new"}
+            key={editing?.id ?? `new-${group ?? ""}`}
             action={saveMember.bind(null, editing?.id ?? null)}
             submitLabel={editing ? "Save changes" : "Add member"}
             imageField="imageUrl"
@@ -48,7 +53,7 @@ export default async function AdminTeamPage({ searchParams }: { searchParams: Pr
               </select>
             </Field>
             <Field label="Team / wing" hint={groups.length ? "For team members, e.g. Web Development or Marketing." : "No wings yet. Create them with “Manage teams / wings”."}>
-              <select name="teamGroupId" defaultValue={editing?.teamGroupId ?? ""} className="field">
+              <select name="teamGroupId" defaultValue={editing?.teamGroupId ?? (groupName.has(group ?? "") ? group : "") ?? ""} className="field">
                 <option value="">— None —</option>
                 {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
               </select>

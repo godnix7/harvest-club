@@ -39,7 +39,7 @@ export default async function TeamPage() {
   type Member = (typeof members)[number];
   type Section = { key: string; title: string; description?: string | null; members: Member[] };
 
-  // Placement: faculty and leadership first; then each wing team; then mentors; then everyone else.
+  // Placement: faculty and leadership first; then each wing team; then everyone else.
   const placed = new Set<string>();
   const take = (predicate: (m: Member) => boolean) => {
     const list = members.filter((m) => !placed.has(m.id) && predicate(m));
@@ -56,7 +56,6 @@ export default async function TeamPage() {
       description: g.description,
       members: take((m) => m.teamGroupId === g.id),
     })),
-    { key: "mentors", title: "Resource Persons & Mentors", members: take((m) => m.category === "MENTOR") },
     { key: "core", title: "Core Team", members: take(() => true) },
   ].filter((s) => s.members.length > 0);
 

@@ -29,6 +29,7 @@ export async function createAdmin(fd: FormData): Promise<ActionResult> {
   const email = text(fd, "email").toLowerCase();
   const password = String(fd.get("password") ?? "");
   const role = text(fd, "role") || "ADMIN";
+  const canEditSettings = fd.get("canEditSettings") === "on";
 
   if (name.length < 2 || name.length > 100) return { error: "Please enter the person's name." };
   if (!EMAIL_RE.test(email) || email.length > 200) return { error: "Please enter a valid email address." };
@@ -37,7 +38,19 @@ export async function createAdmin(fd: FormData): Promise<ActionResult> {
   if (problem) return { error: problem };
 
   try {
-    await prisma.adminUser.create({ data: { name, email, role, passwordHash: await hashPassword(password) } });
+    await prisma.adminUser.create({ data: { name, email, role, canEditSettings, passwordHash: await hashPassword(password) } });
+    refresh();
+    return { success: true };
+  } catch (error) {
+    return { error: errorMessage(error) };
+  }
+}
+
+export async function setSettingsAccess(id: string, allowed: boolean): Promise<ActionResult> {
+  const denied = await guardSuper();
+  if (denied) return denied;
+  try {
+    await prisma.adminUser.update({ where: { id }, data: { canEditSettings: allowed } });
     refresh();
     return { success: true };
   } catch (error) {

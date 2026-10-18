@@ -134,6 +134,7 @@ model AdminUser {
   name         String
   passwordHash String
   role         String    @default("ADMIN") // SUPER or ADMIN
+  canEditSettings Boolean @default(false) // lets a normal admin edit Site settings
   isActive     Boolean   @default(true)
   lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())

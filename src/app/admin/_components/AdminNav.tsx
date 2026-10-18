@@ -7,7 +7,7 @@ import {
   Megaphone, Inbox, Settings, ExternalLink, LogOut, ShieldCheck, UserCog,
 } from "lucide-react";
 
-type Item = { href: string; label: string; icon: typeof Users; superOnly?: boolean; adminOnly?: boolean };
+type Item = { href: string; label: string; icon: typeof Users; superOnly?: boolean; settingsOnly?: boolean; adminOnly?: boolean };
 
 const items: Item[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -17,7 +17,7 @@ const items: Item[] = [
   { href: "/admin/sponsors", label: "Sponsors", icon: Handshake },
   { href: "/admin/announcements", label: "Announcements", icon: Megaphone },
   { href: "/admin/messages", label: "Messages", icon: Inbox },
-  { href: "/admin/settings", label: "Site settings", icon: Settings, superOnly: true },
+  { href: "/admin/settings", label: "Site settings", icon: Settings, settingsOnly: true },
   { href: "/admin/users", label: "Admin users", icon: ShieldCheck, superOnly: true },
   { href: "/admin/account", label: "My account", icon: UserCog },
 ];
@@ -26,11 +26,13 @@ export default function AdminNav({
   name,
   email,
   role,
+  canEditSettings,
   unread,
 }: {
   name: string;
   email: string;
   role: "super" | "admin";
+  canEditSettings: boolean;
   unread: number;
 }) {
   const pathname = usePathname();
@@ -47,7 +49,7 @@ export default function AdminNav({
       </div>
 
       <nav aria-label="Admin" className="flex gap-1 overflow-x-auto p-3 md:flex-1 md:flex-col md:overflow-y-auto">
-        {items.filter((i) => (i.superOnly ? role === "super" : true)).map(({ href, label, icon: Icon }) => (
+        {items.filter((i) => (i.superOnly ? role === "super" : i.settingsOnly ? canEditSettings : true)).map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}

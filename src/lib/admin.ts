@@ -7,6 +7,13 @@ export async function guard(): Promise<ActionResult | null> {
   return (await currentAdmin()) ? null : { error: "Your session has expired. Please sign in again." };
 }
 
+/** Like guard(), but also requires permission to edit Site settings (Super Admin, or an admin who was granted it). */
+export async function guardSettings(): Promise<ActionResult | null> {
+  const admin = await currentAdmin();
+  if (!admin) return { error: "Your session has expired. Please sign in again." };
+  return admin.canEditSettings ? null : { error: "You do not have permission to change Site settings." };
+}
+
 /** Like guard(), but only the Super Admin passes. */
 export async function guardSuper(): Promise<ActionResult | null> {
   const admin = await currentAdmin();

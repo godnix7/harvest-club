@@ -18,7 +18,6 @@ export const TEAM_CATEGORIES: Record<string, string> = {
   FACULTY: "Faculty Coordinators",
   EXECUTIVE: "Leadership (President, Vice President, Secretary…)",
   CORE: "Team member (core / wing teams)",
-  MENTOR: "Resource Person / Mentor",
   PREVIOUS: "Previous Teams",
 };
 

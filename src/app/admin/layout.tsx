@@ -24,7 +24,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f3f5f1] md:flex-row">
-      <AdminNav name={admin.name} email={admin.email} role={admin.role} unread={unread} />
+      <AdminNav name={admin.name} email={admin.email} role={admin.role} canEditSettings={admin.canEditSettings} unread={unread} />
       <div className="min-w-0 flex-1 p-4 sm:p-8">{children}</div>
     </div>
   );

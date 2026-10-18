@@ -40,7 +40,14 @@ export default async function TeamGroupsPage({ searchParams }: { searchParams: P
             <Field label="Short description"><textarea name="description" rows={2} defaultValue={editing?.description ?? ""} className="field" /></Field>
             <Field label="Display order" hint="Lower numbers appear first on the Team page."><input type="number" name="orderIndex" defaultValue={editing?.orderIndex ?? 0} className="field" /></Field>
           </AdminForm>
-          <p className="mt-4 text-xs text-[var(--color-muted)]">After creating a team, assign people to it from the member form using “Team / wing”.</p>
+          <div className="mt-4 rounded-xl bg-[var(--color-paper)] p-3 text-xs leading-relaxed text-[var(--color-muted)]">
+            <p className="font-semibold text-[var(--color-ink)]">How it works</p>
+            <ol className="mt-1 list-decimal space-y-0.5 pl-4">
+              <li>Add the team here (e.g. Web Development).</li>
+              <li>Click <strong>+ Add member</strong> next to it, or choose it under “Team / wing” when adding or editing any member.</li>
+              <li>A team appears on the website as soon as it has at least one member.</li>
+            </ol>
+          </div>
         </section>
 
         <section className="admin-card !p-0 overflow-hidden xl:col-span-2">
@@ -49,10 +56,14 @@ export default async function TeamGroupsPage({ searchParams }: { searchParams: P
             {groups.map((g) => (
               <li key={g.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
                 <div className="min-w-0">
-                  <p className="font-medium">{g.name} <span className="text-xs font-normal text-[var(--color-muted)]">· order {g.orderIndex}</span></p>
+                  <p className="font-medium">
+                    {g.name} <span className="text-xs font-normal text-[var(--color-muted)]">· order {g.orderIndex}</span>
+                    {countOf(g.id) === 0 && <span className="badge ml-2 bg-amber-100 text-amber-800">Not on the website yet — add members</span>}
+                  </p>
                   <p className="text-xs text-[var(--color-muted)]">{countOf(g.id)} member{countOf(g.id) === 1 ? "" : "s"}{g.description ? ` · ${g.description}` : ""}</p>
                 </div>
-                <div className="flex items-center gap-5">
+                <div className="flex flex-wrap items-center gap-5">
+                  <Link href={`/admin/team?group=${g.id}`} className="text-sm font-semibold text-[var(--color-harvest-green)] hover:underline">+ Add member</Link>
                   <Link href={`/admin/team/groups?edit=${g.id}`} className="text-sm font-medium text-[var(--color-harvest-blue)] hover:underline">Edit</Link>
                   <ActionButton action={deleteGroup.bind(null, g.id)} label="Delete" variant="danger" confirmText={`Delete the “${g.name}” team? Its members stay on the site but are no longer assigned to a team.`} />
                 </div>
