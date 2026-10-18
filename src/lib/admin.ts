@@ -21,11 +21,24 @@ export function int(fd: FormData, key: string, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+/** Turns a thrown database error into a message that tells the admin what actually went wrong. */
 export function errorMessage(error: unknown): string {
   console.error(error);
-  return error instanceof Error && error.message.includes("Record to")
-    ? "That record no longer exists."
-    : "Something went wrong while saving. Please try again.";
+  const code = (error as { code?: string } | null)?.code;
+  const name = error instanceof Error ? error.name : "";
+  const message = error instanceof Error ? error.message : "";
+
+  if (name === "PrismaClientInitializationError" || code === "P1001" || code === "P1002" || code === "P1000") {
+    return "Cannot connect to the database. Check that the Supabase project is running and DATABASE_URL is correct.";
+  }
+  if (code === "P2021" || code === "P2022") {
+    return "The database tables are missing or out of date. Run “npx prisma db push” against the production database.";
+  }
+  if (code === "P2025" || message.includes("Record to")) return "That record no longer exists.";
+  if (code === "P2002") return "A record with these details already exists.";
+  if (code === "P2000") return "One of the values is too long for the database.";
+
+  return `Could not save (${code ?? name ?? "unknown error"}). Please try again or check the server logs.`;
 }
 
 /**
