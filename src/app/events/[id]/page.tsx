@@ -7,6 +7,11 @@ import { prisma, safe, categoryLabel, formatDate, EVENT_STATUSES } from "@/lib/s
 
 export const revalidate = 60;
 
+// Render event pages on first visit, then serve them from cache (refreshed every minute).
+export function generateStaticParams() {
+  return [];
+}
+
 type Params = { params: Promise<{ id: string }> };
 
 const getEvent = (id: string) => safe(() => prisma.event.findUnique({ where: { id } }), null);

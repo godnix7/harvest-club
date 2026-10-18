@@ -17,27 +17,25 @@ const pillars = [
 
 export default async function Home() {
   const defaults = { showAboutPreview: true, showActivities: true, showSponsors: true, showCTA: true };
-  const settings = await safe(
-    async () => (await prisma.siteSettings.findUnique({ where: { id: "global" } })) ?? defaults,
-    defaults
-  );
 
-  const [featured, upcoming, sponsors, announcements, counts] = await Promise.all([
+  // One parallel wave of queries (a single database round trip) instead of a chain.
+  const [settingsRow, featured, upcoming, sponsors, announcements, statusCounts] = await Promise.all([
+    safe(() => prisma.siteSettings.findUnique({ where: { id: "global" } }), null),
     safe(() => prisma.event.findMany({ where: { isFeatured: true }, orderBy: { date: "desc" }, take: 3 }), []),
     safe(() => prisma.event.findMany({ where: { status: { in: ["UPCOMING", "ONGOING"] }, date: { gte: startOfYesterday() } }, orderBy: { date: "asc" }, take: 1 }), []),
     safe(() => prisma.sponsor.findMany({ where: { isActive: true }, orderBy: [{ orderIndex: "asc" }, { createdAt: "asc" }] }), []),
     safe(() => prisma.announcement.findMany({ where: { isPublished: true }, orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }], take: 3 }), []),
-    safe(async () => ({
-      events: await prisma.event.count(),
-      completed: await prisma.event.count({ where: { status: "COMPLETED" } }),
-      sponsors: await prisma.sponsor.count({ where: { isActive: true } }),
-    }), { events: 0, completed: 0, sponsors: 0 }),
+    safe(() => prisma.event.groupBy({ by: ["status"], _count: true }), []),
   ]);
 
+  const settings = settingsRow ?? defaults;
+  const totalEvents = statusCounts.reduce((n, c) => n + c._count, 0);
+  const completed = statusCounts.find((c) => c.status === "COMPLETED")?._count ?? 0;
+
   const stats = [
-    { label: "Events organised", value: counts.completed },
-    { label: "Total events", value: counts.events },
-    { label: "Partners", value: counts.sponsors },
+    { label: "Events organised", value: completed },
+    { label: "Total events", value: totalEvents },
+    { label: "Partners", value: sponsors.length },
   ].filter((s) => s.value > 0);
 
   const next = upcoming[0];
