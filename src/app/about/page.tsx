@@ -1,55 +1,78 @@
-import Link from "next/link";
 import { Metadata } from "next";
+import Link from "next/link";
+import PageHeader from "@/components/ui/PageHeader";
 
 export const metadata: Metadata = {
-  title: "About | Harvest Club",
-  description: "Learn about the mission, vision, and history of Harvest Club.",
+  title: "About",
+  description: "Learn about the mission, vision and values of Harvest Club.",
 };
+
+const values = [
+  { title: "Collaboration", text: "The best ideas grow when engineers, designers and agriculture enthusiasts work together." },
+  { title: "Sustainability", text: "We prioritise solutions that are practical, affordable and good for the land." },
+  { title: "Learning by doing", text: "Hackathons, workshops and field visits turn classroom knowledge into experience." },
+  { title: "Inclusion", text: "Programmes such as She Leads encourage wider participation and leadership in technology." },
+];
 
 export default function AboutPage() {
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50">
-      {/* Hero Section */}
-      <section className="bg-[var(--color-harvest-green)] text-white py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center fade-in">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">About Harvest Club</h1>
-          <p className="text-xl max-w-2xl mx-auto text-green-100">
-            Fostering innovation and driving change through technology and agricultural advancement.
-          </p>
-        </div>
-      </section>
+    <>
+      <PageHeader
+        eyebrow="About us"
+        title="About Harvest Club"
+        lead="A student community fostering innovation at the intersection of agriculture and technology."
+      />
 
-      {/* Main Content */}
-      <section className="py-16">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 md:p-12 mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-6 border-b pb-4">Our Mission</h2>
-            <p className="text-lg text-gray-700 leading-relaxed mb-6">
-              Harvest Club is dedicated to bridging the gap between traditional agriculture and modern technology. 
-              We aim to empower students to build sustainable, innovative, and impactful solutions for the future.
+      <section className="section">
+        <div className="container-page grid gap-12 lg:grid-cols-2">
+          <div>
+            <h2 className="font-display text-3xl font-bold">Our mission</h2>
+            <p className="mt-4 text-lg leading-relaxed text-[var(--color-muted)]">
+              Harvest Club is dedicated to bridging the gap between traditional agriculture and modern
+              technology. We empower students to build sustainable, innovative and impactful solutions
+              for the future.
             </p>
           </div>
-          
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 md:p-12 mb-12">
-            <h2 className="text-3xl font-bold text-[var(--color-harvest-blue-dark)] mb-6 border-b pb-4">Our Vision</h2>
-            <p className="text-lg text-gray-700 leading-relaxed mb-6">
-              To be the leading student community for agritech innovation, creating a network of forward-thinking 
+          <div>
+            <h2 className="font-display text-3xl font-bold">Our vision</h2>
+            <p className="mt-4 text-lg leading-relaxed text-[var(--color-muted)]">
+              To be the leading student community for agritech innovation — a network of forward-thinking
               individuals who will shape the future of technology and nature.
             </p>
           </div>
-
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 md:p-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-6 border-b pb-4">Our Philosophy</h2>
-            <p className="text-lg text-gray-700 leading-relaxed">
-              We believe that the best ideas grow in a collaborative environment. By bringing together diverse 
-              talents—from engineering to design, and business to agriculture—we cultivate an ecosystem where 
-              innovation thrives. <strong>Technology growing from ideas.</strong>
-            </p>
-          </div>
-
         </div>
       </section>
-    </div>
+
+      <section className="section bg-[var(--color-paper)]">
+        <div className="container-page">
+          <p className="eyebrow">Principles</p>
+          <h2 className="font-display mt-3 text-3xl font-bold">What we value</h2>
+          <div className="mt-10 grid gap-6 sm:grid-cols-2">
+            {values.map((v, i) => (
+              <div key={v.title} className="card flex gap-5 p-6">
+                <span className="font-display text-3xl font-bold text-[var(--color-harvest-accent)]">0{i + 1}</span>
+                <div>
+                  <h3 className="font-display text-xl font-bold">{v.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-[var(--color-muted)]">{v.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="container-page flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
+          <div>
+            <h2 className="font-display text-2xl font-bold">Meet the people behind the club</h2>
+            <p className="mt-1 text-[var(--color-muted)]">Faculty coordinators, the executive committee and our core team.</p>
+          </div>
+          <div className="flex gap-3">
+            <Link href="/team" className="btn-primary">Our team</Link>
+            <Link href="/events" className="btn-outline">Our events</Link>
+          </div>
+        </div>
+      </section>
+    </>
   );
 }

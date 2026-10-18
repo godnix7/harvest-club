@@ -1,135 +1,150 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import {
+  Home, CalendarDays, Users, Image as ImageIcon, Menu, X, Info, Handshake, Megaphone, Mail, ChevronRight,
+} from "lucide-react";
 
-const navLinks = [
+const desktopLinks = [
   { name: "Home", href: "/" },
   { name: "About", href: "/about" },
   { name: "Events", href: "/events" },
   { name: "Team", href: "/team" },
   { name: "Gallery", href: "/gallery" },
   { name: "Sponsors", href: "/sponsors" },
-  { name: "Contact", href: "/contact" },
+  { name: "Announcements", href: "/announcements" },
+];
+
+const tabs = [
+  { name: "Home", href: "/", icon: Home },
+  { name: "Events", href: "/events", icon: CalendarDays },
+  { name: "Team", href: "/team", icon: Users },
+  { name: "Gallery", href: "/gallery", icon: ImageIcon },
+];
+
+const moreLinks = [
+  { name: "About the club", href: "/about", icon: Info },
+  { name: "Sponsors & partners", href: "/sponsors", icon: Handshake },
+  { name: "Announcements", href: "/announcements", icon: Megaphone },
+  { name: "Contact us", href: "/contact", icon: Mail },
 ];
 
 export default function Navbar() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const [openPath, setOpenPath] = useState<string | null>(null);
   const pathname = usePathname();
+  // The sheet is tied to the page it was opened on, so navigating closes it.
+  const sheet = openPath === pathname;
+  const setSheet = (open: boolean) => setOpenPath(open ? pathname : null);
 
+  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  const moreActive = moreLinks.some((l) => isActive(l.href));
+
+  // Lock page scroll while the sheet is open.
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+    document.body.style.overflow = sheet ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [sheet]);
 
   return (
-    <motion.nav
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-      className={`sticky top-0 z-50 transition-all duration-300 glass ${
-        scrolled ? "shadow-md py-2" : "py-4"
-      }`}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          
-          <div className="flex items-center">
-            <Link href="/" className="flex-shrink-0 flex items-center gap-3 group">
-              <motion.div 
-                whileHover={{ rotate: 180, scale: 1.1 }}
-                transition={{ duration: 0.4 }}
-                className="relative w-10 h-10 md:w-12 md:h-12"
-              >
-                <Image
-                  src="/logo.png"
-                  alt="Harvest Club Logo"
-                  fill
-                  sizes="48px"
-                  className="object-contain"
-                />
-              </motion.div>
-              <span className="font-bold text-xl md:text-2xl text-[var(--color-harvest-blue-dark)] tracking-tight group-hover:text-[var(--color-harvest-blue)] transition-colors">
-                HARVEST <span className="text-[var(--color-harvest-green)]">CLUB</span>
-              </span>
-            </Link>
-          </div>
+    <>
+      {/* Top bar */}
+      <header className="sticky top-0 z-40 border-b border-[var(--color-line)] bg-white/90 backdrop-blur-md">
+        <div className="container-page flex h-14 items-center justify-between lg:h-[4.25rem]">
+          <Link href="/" className="flex items-center gap-2.5">
+            <Image src="/logo.png" alt="" width={40} height={40} className="h-9 w-9 object-contain lg:h-10 lg:w-10" priority />
+            <span className="text-lg font-extrabold tracking-tight text-[var(--color-harvest-blue-dark)] lg:text-xl">
+              HARVEST <span className="text-[var(--color-harvest-green)]">CLUB</span>
+            </span>
+          </Link>
 
-          <div className="hidden sm:ml-6 sm:flex sm:items-center sm:space-x-1">
-            {navLinks.map((link) => {
-              const isActive = pathname === link.href || (pathname.startsWith(link.href) && link.href !== "/");
-              return (
+          {/* Desktop navigation */}
+          <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
+            {desktopLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={isActive(link.href) ? "page" : undefined}
+                className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                  isActive(link.href)
+                    ? "bg-[var(--color-harvest-green)]/10 text-[var(--color-harvest-green-dark)]"
+                    : "text-[var(--color-muted)] hover:bg-gray-50 hover:text-[var(--color-harvest-blue)]"
+                }`}
+              >
+                {link.name}
+              </Link>
+            ))}
+            <Link href="/contact" className="btn-primary ml-3 !min-h-10 !py-2">Contact Us</Link>
+          </nav>
+
+          {/* Phone: quick contact shortcut */}
+          <Link href="/contact" className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-[var(--color-harvest-green)] px-4 text-sm font-semibold text-white active:scale-95 lg:hidden">
+            <Mail size={15} /> Contact
+          </Link>
+        </div>
+      </header>
+
+      {/* Phone: bottom tab bar */}
+      <nav
+        aria-label="Primary"
+        className="site-tabbar fixed inset-x-0 bottom-0 z-50 border-t border-[var(--color-line)] bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
+      >
+        <ul className="mx-auto grid h-[4.25rem] max-w-lg grid-cols-5">
+          {tabs.map(({ name, href, icon: Icon }) => {
+            const active = isActive(href);
+            return (
+              <li key={href}>
                 <Link
-                  key={link.name}
-                  href={link.href}
-                  className="relative px-3 py-2 text-sm font-medium rounded-md transition-colors group"
+                  href={href}
+                  aria-current={active ? "page" : undefined}
+                  className={`relative flex h-full flex-col items-center justify-center gap-1 text-[11px] font-semibold ${active ? "text-[var(--color-harvest-green)]" : "text-gray-500"}`}
                 >
-                  <span className={`relative z-10 ${isActive ? "text-[var(--color-harvest-blue-dark)] font-bold" : "text-gray-600 group-hover:text-[var(--color-harvest-blue)]"}`}>
-                    {link.name}
-                  </span>
-                  {isActive && (
-                    <motion.div
-                      layoutId="navbar-indicator"
-                      className="absolute inset-0 bg-green-50 rounded-md z-0"
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
+                  {active && <span className="absolute top-0 h-0.5 w-8 rounded-b bg-[var(--color-harvest-green)]" />}
+                  <Icon size={22} strokeWidth={active ? 2.4 : 1.9} />
+                  {name}
                 </Link>
-              );
-            })}
-          </div>
-          
-          {/* Mobile menu button */}
-          <div className="flex items-center sm:hidden z-50">
+              </li>
+            );
+          })}
+          <li>
             <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               type="button"
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-900 focus:outline-none"
+              onClick={() => setSheet(!sheet)}
+              aria-expanded={sheet}
+              aria-controls="more-sheet"
+              className={`relative flex h-full w-full flex-col items-center justify-center gap-1 text-[11px] font-semibold ${sheet || moreActive ? "text-[var(--color-harvest-green)]" : "text-gray-500"}`}
             >
-              <span className="sr-only">Open main menu</span>
-              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              {sheet ? <X size={22} /> : <Menu size={22} />}
+              More
             </button>
+          </li>
+        </ul>
+      </nav>
+
+      {/* Phone: "More" bottom sheet */}
+      {sheet && (
+        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="More pages">
+          <button type="button" aria-label="Close menu" className="absolute inset-0 bg-black/40" onClick={() => setSheet(false)} />
+          <div id="more-sheet" className="absolute inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] rounded-t-3xl bg-white p-4 shadow-2xl">
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-gray-300" />
+            <ul className="divide-y divide-[var(--color-line)]">
+              {moreLinks.map(({ name, href, icon: Icon }) => (
+                <li key={href}>
+                  <Link href={href} className="flex min-h-14 items-center gap-4 px-2 text-base font-semibold text-[var(--color-ink)] active:bg-gray-50">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-soft text-[var(--color-harvest-blue)]">
+                      <Icon size={20} />
+                    </span>
+                    <span className="flex-1">{name}</span>
+                    <ChevronRight size={18} className="text-gray-400" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
-      </div>
-
-      {/* Mobile menu */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="sm:hidden absolute w-full glass border-b border-white/20 overflow-hidden"
-          >
-            <div className="px-2 pt-2 pb-3 space-y-1">
-              {navLinks.map((link) => {
-                const isActive = pathname === link.href || (pathname.startsWith(link.href) && link.href !== "/");
-                return (
-                  <Link
-                    key={link.name}
-                    href={link.href}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
-                      isActive
-                        ? "bg-[var(--color-harvest-green)]/10 text-[var(--color-harvest-green-dark)]"
-                        : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                    }`}
-                  >
-                    {link.name}
-                  </Link>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.nav>
+      )}
+    </>
   );
 }

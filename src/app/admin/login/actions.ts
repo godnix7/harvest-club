@@ -1,33 +1,53 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import {
+  SESSION_COOKIE,
+  SESSION_MAX_AGE,
+  createSessionToken,
+  credentialsMatch,
+} from "@/lib/auth";
+
+// Basic in-memory brute-force protection (per server instance).
+const attempts = new Map<string, { count: number; first: number }>();
+const WINDOW_MS = 15 * 60 * 1000;
+const MAX_ATTEMPTS = 8;
 
 export async function login(formData: FormData) {
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
+  const email = String(formData.get("email") ?? "");
+  const password = String(formData.get("password") ?? "");
 
-  const validEmail = process.env.ADMIN_EMAIL;
-  const validPassword = process.env.ADMIN_PASSWORD;
-
-  if (!validEmail || !validPassword) {
+  if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) {
     return { error: "Admin credentials are not configured on the server." };
   }
 
-  if (email === validEmail && password === validPassword) {
-    // Set a simple secure cookie session
-    const cookieStore = await cookies();
-    cookieStore.set("admin_session", "authenticated", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24, // 1 day
-      path: "/",
-    });
-    
-    revalidatePath("/admin", "layout");
-    redirect("/admin");
-  } else {
-    return { error: "Invalid email or password" };
+  const key = email.trim().toLowerCase() || "unknown";
+  const now = Date.now();
+  const record = attempts.get(key);
+  if (record && now - record.first < WINDOW_MS && record.count >= MAX_ATTEMPTS) {
+    return { error: "Too many failed attempts. Please try again in 15 minutes." };
   }
+
+  if (!(await credentialsMatch(email, password))) {
+    attempts.set(
+      key,
+      record && now - record.first < WINDOW_MS
+        ? { count: record.count + 1, first: record.first }
+        : { count: 1, first: now }
+    );
+    return { error: "Invalid email or password." };
+  }
+
+  attempts.delete(key);
+  const cookieStore = await cookies();
+  cookieStore.set(SESSION_COOKIE, await createSessionToken(), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: SESSION_MAX_AGE,
+    path: "/",
+  });
+
+  redirect("/admin");
 }

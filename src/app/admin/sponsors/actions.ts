@@ -2,105 +2,70 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { cookies } from "next/headers";
-import { generateUploadUrl as getStorageUploadUrl } from "@/lib/storage";
+import { guard, text, optional, int, errorMessage, httpUrl, type ActionResult } from "@/lib/admin";
+import { SPONSOR_TIERS } from "@/lib/categories";
 
-export async function createSponsor(formData: FormData) {
-  const cookieStore = await cookies();
-  const isAuthenticated = cookieStore.get("admin_session")?.value === "authenticated";
+function refresh() {
+  revalidatePath("/");
+  revalidatePath("/sponsors");
+  revalidatePath("/admin/sponsors");
+  revalidatePath("/admin");
+}
 
-  if (!isAuthenticated) {
-    return { error: "Unauthorized" };
-  }
+export async function saveSponsor(id: string | null, fd: FormData): Promise<ActionResult> {
+  const denied = await guard();
+  if (denied) return denied;
 
-  const name = formData.get("name") as string;
-  const tier = formData.get("tier") as string;
-  const description = formData.get("description") as string;
-  const logoUrl = formData.get("logoUrl") as string;
-  const websiteUrl = formData.get("websiteUrl") as string;
+  const name = text(fd, "name");
+  const tier = text(fd, "tier");
+  const logoUrl = httpUrl(optional(fd, "imageUrl"));
+  const websiteUrl = httpUrl(optional(fd, "websiteUrl"));
 
-  if (!name) {
-    return { error: "Name is required" };
-  }
+  if (!name) return { error: "Sponsor name is required." };
+  if (!SPONSOR_TIERS.includes(tier)) return { error: "Choose a valid tier." };
+  if (logoUrl === false) return { error: "Logo URL must start with http:// or https://" };
+  if (websiteUrl === false) return { error: "Website must start with http:// or https://" };
+
+  const data = {
+    name,
+    tier,
+    description: optional(fd, "description"),
+    logoUrl,
+    websiteUrl,
+    orderIndex: int(fd, "orderIndex"),
+    isActive: fd.get("isActive") === "on",
+  };
 
   try {
-    await prisma.sponsor.create({
-      data: {
-        name,
-        tier,
-        description,
-        logoUrl,
-        websiteUrl,
-        isActive: true,
-        orderIndex: 0
-      }
-    });
-
-    revalidatePath("/sponsors");
-    revalidatePath("/admin/sponsors");
+    if (id) await prisma.sponsor.update({ where: { id }, data });
+    else await prisma.sponsor.create({ data });
+    refresh();
     return { success: true };
-  } catch (error: any) {
-    return { error: error.message };
-  }
-}
-
-export async function getPresignedUrl(filename: string, contentType: string) {
-  const cookieStore = await cookies();
-  const isAuthenticated = cookieStore.get("admin_session")?.value === "authenticated";
-
-  if (!isAuthenticated) {
-    return { error: "Unauthorized" };
-  }
-
-  try {
-    const key = `sponsors/${Date.now()}-${filename.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-    const result = await getStorageUploadUrl(key, contentType);
-    return { url: result.uploadUrl, publicUrl: result.publicUrl };
-  } catch (error: any) {
-    return { error: error.message };
-  }
-}
-
-export async function deleteSponsor(id: string) {
-  const cookieStore = await cookies();
-  const isAuthenticated = cookieStore.get("admin_session")?.value === "authenticated";
-
-  if (!isAuthenticated) {
-    return { error: "Unauthorized" };
-  }
-
-  try {
-    await prisma.sponsor.delete({
-      where: { id }
-    });
-
-    revalidatePath("/sponsors");
-    revalidatePath("/admin/sponsors");
-    return { success: true };
-  } catch (error: any) {
-    return { error: error.message };
-  }
-}
-
-export async function getSponsors() {
-  const cookieStore = await cookies();
-  const isAuthenticated = cookieStore.get("admin_session")?.value === "authenticated";
-
-  if (!isAuthenticated) {
-    return [];
-  }
-
-  try {
-    const sponsors = await prisma.sponsor.findMany({
-      orderBy: { createdAt: 'desc' }
-    });
-    return sponsors.map(s => ({
-      ...s,
-      createdAt: s.createdAt.toISOString(),
-      updatedAt: s.updatedAt.toISOString(),
-    }));
   } catch (error) {
-    console.error(error);
-    return [];
+    return { error: errorMessage(error) };
+  }
+}
+
+export async function setSponsorActive(id: string, isActive: boolean): Promise<ActionResult> {
+  const denied = await guard();
+  if (denied) return denied;
+  try {
+    await prisma.sponsor.update({ where: { id }, data: { isActive } });
+    refresh();
+    return { success: true };
+  } catch (error) {
+    return { error: errorMessage(error) };
+  }
+}
+
+export async function deleteSponsor(id: string): Promise<ActionResult> {
+  const denied = await guard();
+  if (denied) return denied;
+  try {
+    await prisma.sponsor.delete({ where: { id } });
+    refresh();
+    return { success: true };
+  } catch (error) {
+    return { error: errorMessage(error) };
   }
 }

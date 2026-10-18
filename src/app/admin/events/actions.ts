@@ -2,109 +2,79 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { cookies } from "next/headers";
+import { guard, text, optional, errorMessage, httpUrl, type ActionResult } from "@/lib/admin";
+import { EVENT_CATEGORIES, EVENT_STATUSES } from "@/lib/site";
 
-import { generateUploadUrl as getStorageUploadUrl } from "@/lib/storage";
+function refresh(id?: string) {
+  revalidatePath("/");
+  revalidatePath("/events");
+  if (id) revalidatePath(`/events/${id}`);
+  revalidatePath("/admin/events");
+  revalidatePath("/admin");
+}
 
-export async function createEvent(formData: FormData) {
-  const cookieStore = await cookies();
-  const isAuthenticated = cookieStore.get("admin_session")?.value === "authenticated";
+/** Creates (id = null) or updates an event. */
+export async function saveEvent(id: string | null, fd: FormData): Promise<ActionResult> {
+  const denied = await guard();
+  if (denied) return denied;
 
-  if (!isAuthenticated) {
-    return { error: "Unauthorized" };
-  }
+  const title = text(fd, "title");
+  const dateRaw = text(fd, "date");
+  const category = text(fd, "category");
+  const status = text(fd, "status");
+  const description = text(fd, "description");
+  const coverImage = httpUrl(optional(fd, "imageUrl"));
 
-  const title = formData.get("title") as string;
-  const description = formData.get("description") as string;
-  const date = formData.get("date") as string;
-  const category = formData.get("category") as string;
-  const status = formData.get("status") as string;
-  const coverImage = formData.get("coverImage") as string;
-  const isFeatured = formData.get("isFeatured") === "true";
+  if (!title) return { error: "Title is required." };
+  if (!dateRaw || Number.isNaN(new Date(dateRaw).getTime())) return { error: "A valid date is required." };
+  if (!description) return { error: "Please add a description." };
+  if (!(category in EVENT_CATEGORIES)) return { error: "Choose a valid category." };
+  if (!(status in EVENT_STATUSES)) return { error: "Choose a valid status." };
+  if (coverImage === false) return { error: "Image URL must start with http:// or https://" };
 
-  if (!title || !date) {
-    return { error: "Title and Date are required" };
-  }
+  const data = {
+    title,
+    description,
+    date: new Date(dateRaw),
+    category,
+    status,
+    venue: optional(fd, "venue"),
+    highlights: optional(fd, "highlights"),
+    results: optional(fd, "results"),
+    coverImage,
+    isFeatured: fd.get("isFeatured") === "on",
+  };
 
   try {
-    // @ts-ignore Prisma types might not be updated until user restarts dev server
-    await prisma.event.create({
-      data: {
-        title,
-        description,
-        date: new Date(date),
-        category,
-        status,
-        coverImage: coverImage || null,
-        isFeatured,
-      } as any
-    });
-
-    revalidatePath("/events");
-    revalidatePath("/admin/events");
+    if (id) await prisma.event.update({ where: { id }, data });
+    else await prisma.event.create({ data });
+    refresh(id ?? undefined);
     return { success: true };
-  } catch (error: any) {
-    return { error: error.message };
-  }
-}
-
-export async function deleteEvent(id: string) {
-  const cookieStore = await cookies();
-  const isAuthenticated = cookieStore.get("admin_session")?.value === "authenticated";
-
-  if (!isAuthenticated) {
-    return { error: "Unauthorized" };
-  }
-
-  try {
-    await prisma.event.delete({
-      where: { id }
-    });
-
-    revalidatePath("/admin/events");
-    return { success: true };
-  } catch (error: any) {
-    return { error: error.message };
-  }
-}
-
-export async function getEventPresignedUrl(filename: string, contentType: string) {
-  const cookieStore = await cookies();
-  const isAuthenticated = cookieStore.get("admin_session")?.value === "authenticated";
-
-  if (!isAuthenticated) {
-    return { error: "Unauthorized" };
-  }
-
-  try {
-    const key = `events/${Date.now()}-${filename.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-    const result = await getStorageUploadUrl(key, contentType);
-    return { url: result.uploadUrl, publicUrl: result.publicUrl };
-  } catch (error: any) {
-    return { error: error.message };
-  }
-}
-
-export async function getEvents() {
-  const cookieStore = await cookies();
-  const isAuthenticated = cookieStore.get("admin_session")?.value === "authenticated";
-
-  if (!isAuthenticated) {
-    return [];
-  }
-
-  try {
-    const events = await prisma.event.findMany({
-      orderBy: { date: 'desc' }
-    });
-    return events.map(e => ({
-      ...e,
-      date: e.date.toISOString(),
-      createdAt: e.createdAt.toISOString(),
-      updatedAt: e.updatedAt.toISOString(),
-    }));
   } catch (error) {
-    console.error(error);
-    return [];
+    return { error: errorMessage(error) };
+  }
+}
+
+export async function toggleFeatured(id: string, value: boolean): Promise<ActionResult> {
+  const denied = await guard();
+  if (denied) return denied;
+  try {
+    await prisma.event.update({ where: { id }, data: { isFeatured: value } });
+    refresh(id);
+    return { success: true };
+  } catch (error) {
+    return { error: errorMessage(error) };
+  }
+}
+
+export async function deleteEvent(id: string): Promise<ActionResult> {
+  const denied = await guard();
+  if (denied) return denied;
+  try {
+    await prisma.event.delete({ where: { id } });
+    refresh(id);
+    return { success: true };
+  } catch (error) {
+    return { error: errorMessage(error) };
   }
 }

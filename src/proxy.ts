@@ -1,23 +1,25 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
 
 export async function proxy(request: NextRequest) {
-  const adminSession = request.cookies.get("admin_session")?.value;
-  const isAuthenticated = adminSession === "authenticated";
+  const { pathname } = request.nextUrl;
+  const isAuthenticated = await verifySessionToken(
+    request.cookies.get(SESSION_COOKIE)?.value
+  );
 
-  const isApiAdminRoute = request.nextUrl.pathname.startsWith('/api/admin');
-  const isAdminRoute = request.nextUrl.pathname.startsWith('/admin') && !request.nextUrl.pathname.startsWith('/admin/login');
+  const isLogin = pathname.startsWith("/admin/login");
+  const isProtected =
+    (pathname.startsWith("/admin") && !isLogin) || pathname.startsWith("/api/admin");
 
-  if (!isAuthenticated && (isAdminRoute || isApiAdminRoute)) {
-    // No valid session, redirect to login page
+  if (!isAuthenticated && isProtected) {
     const url = request.nextUrl.clone();
-    url.pathname = '/admin/login';
+    url.pathname = "/admin/login";
     return NextResponse.redirect(url);
   }
 
-  // If user is logged in and trying to access login page, redirect to dashboard
-  if (isAuthenticated && request.nextUrl.pathname.startsWith('/admin/login')) {
+  if (isAuthenticated && isLogin) {
     const url = request.nextUrl.clone();
-    url.pathname = '/admin';
+    url.pathname = "/admin";
     return NextResponse.redirect(url);
   }
 
@@ -25,7 +27,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  matcher: ["/admin/:path*", "/api/admin/:path*"],
 };

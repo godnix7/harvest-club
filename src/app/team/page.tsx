@@ -1,65 +1,95 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Metadata } from "next";
+import { ArrowRight } from "lucide-react";
+import PageHeader from "@/components/ui/PageHeader";
+import { prisma, safe, initials, safeUrl, TEAM_CATEGORIES } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Team | Harvest Club",
-  description: "Meet the faculty coordinators, executive committee, and core team of Harvest Club.",
+  title: "Team",
+  description: "Meet the faculty coordinators, executive committee and core team of Harvest Club.",
 };
 
-const mockTeam = [
-  { id: "1", name: "Dr. A. Sharma", position: "Faculty Coordinator", department: "Computer Science", category: "FACULTY" },
-  { id: "2", name: "Priya Patel", position: "President", department: "Information Technology", category: "EXECUTIVE" },
-  { id: "3", name: "Rahul Kumar", position: "Vice President", department: "Electronics", category: "EXECUTIVE" },
-  { id: "4", name: "Neha Singh", position: "Technical Lead", department: "Computer Science", category: "CORE" },
-];
+export const revalidate = 60;
 
-export default function TeamPage() {
-  const faculty = mockTeam.filter(m => m.category === "FACULTY");
-  const executives = mockTeam.filter(m => m.category === "EXECUTIVE");
-  const core = mockTeam.filter(m => m.category === "CORE");
+function linkedin(socialLinks?: string | null) {
+  if (!socialLinks) return null;
+  try {
+    return safeUrl(JSON.parse(socialLinks).linkedin);
+  } catch {
+    return null;
+  }
+}
 
-  const TeamSection = ({ title, members }: { title: string, members: typeof mockTeam }) => (
-    <div className="mb-16">
-      <h2 className="text-2xl font-bold text-gray-900 mb-8 border-b pb-4">{title}</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-        {members.map(member => (
-          <div key={member.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden text-center hover:shadow-md transition-shadow">
-            <div className="h-48 bg-gray-200 w-full relative">
-               <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
-                  [Photo]
-               </div>
-            </div>
-            <div className="p-6">
-              <h3 className="text-xl font-bold text-gray-900">{member.name}</h3>
-              <p className="text-[var(--color-harvest-green)] font-medium text-sm mt-1">{member.position}</p>
-              <p className="text-gray-500 text-sm mt-2">{member.department}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+export default async function TeamPage() {
+  const members = await safe(
+    () =>
+      prisma.teamMember.findMany({
+        where: { category: { not: "PREVIOUS" } },
+        orderBy: [{ orderIndex: "asc" }, { createdAt: "asc" }],
+      }),
+    []
   );
 
+  const sections = ["FACULTY", "EXECUTIVE", "CORE"]
+    .map((key) => ({ key, title: TEAM_CATEGORIES[key], members: members.filter((m) => m.category === key) }))
+    .filter((s) => s.members.length > 0);
+
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        
-        <div className="flex justify-between items-end mb-12 border-b border-gray-200 pb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">Our Team</h1>
-            <p className="text-lg text-gray-600">The dedicated individuals driving innovation at Harvest Club.</p>
+    <>
+      <PageHeader
+        eyebrow="People"
+        title="Our team"
+        lead="The faculty and students who lead Harvest Club and run its programmes."
+      >
+        <Link href="/team/previous" className="mt-6 inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-harvest-green)] hover:underline">
+          Previous teams <ArrowRight size={14} />
+        </Link>
+      </PageHeader>
+
+      <div className="container-page space-y-10 py-10 sm:space-y-16 sm:py-14">
+        {sections.length === 0 && (
+          <div className="card border-dashed p-10 text-center text-sm text-[var(--color-muted)]">
+            Team details will be published soon.
           </div>
-          <Link href="/team/previous" className="text-[var(--color-harvest-blue)] hover:text-[var(--color-harvest-blue-dark)] font-medium inline-flex items-center">
-            Previous Teams
-            <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-          </Link>
-        </div>
-
-        {faculty.length > 0 && <TeamSection title="Faculty Coordinators" members={faculty} />}
-        {executives.length > 0 && <TeamSection title="Executive Committee" members={executives} />}
-        {core.length > 0 && <TeamSection title="Core Team" members={core} />}
-
+        )}
+        {sections.map((section) => (
+          <section key={section.key} aria-labelledby={section.key}>
+            <h2 id={section.key} className="font-display mb-6 border-b border-[var(--color-line)] pb-3 text-2xl font-bold">
+              {section.title}
+            </h2>
+            <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
+              {section.members.map((m) => {
+                const profile = linkedin(m.socialLinks);
+                return (
+                  <article key={m.id} className="card overflow-hidden text-center">
+                    <div className="relative aspect-square bg-gradient-soft sm:aspect-[4/3]">
+                      {m.photoUrl ? (
+                        <Image src={m.photoUrl} alt={m.name} fill sizes="(min-width:1280px) 25vw, (min-width:640px) 33vw, 100vw" className="object-cover" />
+                      ) : (
+                        <span className="font-display absolute inset-0 flex items-center justify-center text-4xl font-bold text-[var(--color-harvest-blue)]/60">
+                          {initials(m.name)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-3 sm:p-5">
+                      <h3 className="font-display text-lg font-bold">{m.name}</h3>
+                      <p className="mt-0.5 text-sm font-medium text-[var(--color-harvest-green)]">{m.position}</p>
+                      {m.department && <p className="mt-1 text-xs text-[var(--color-muted)]">{m.department}</p>}
+                      {m.bio && <p className="mt-3 line-clamp-3 text-sm text-[var(--color-muted)]">{m.bio}</p>}
+                      {profile && (
+                        <a href={profile} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-xs font-semibold text-[var(--color-harvest-blue)] hover:underline">
+                          LinkedIn profile
+                        </a>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        ))}
       </div>
-    </div>
+    </>
   );
 }

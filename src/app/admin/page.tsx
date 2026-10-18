@@ -1,46 +1,106 @@
-import { cookies } from "next/headers";
+import Link from "next/link";
+import type { Metadata } from "next";
+import { CalendarDays, Users, Handshake, Image as ImageIcon, Inbox, Megaphone, ArrowRight } from "lucide-react";
+import { prisma, safe, formatDate, categoryLabel } from "@/lib/site";
+import { AdminHeader, Empty } from "./_components/AdminPage";
+
+export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function AdminDashboard() {
-  const cookieStore = await cookies();
-  const isAuthenticated = cookieStore.get("admin_session")?.value === "authenticated";
-  const adminEmail = process.env.ADMIN_EMAIL || "Admin";
+  const [counts, upcoming, messages] = await Promise.all([
+    safe(async () => {
+      const [events, upcomingEvents, team, gallery, sponsors, announcements, unread] = await Promise.all([
+        prisma.event.count(),
+        prisma.event.count({ where: { status: { in: ["UPCOMING", "ONGOING"] } } }),
+        prisma.teamMember.count(),
+        prisma.galleryImage.count(),
+        prisma.sponsor.count({ where: { isActive: true } }),
+        prisma.announcement.count({ where: { isPublished: true } }),
+        prisma.contactMessage.count({ where: { status: "UNREAD" } }),
+      ]);
+      return { events, upcomingEvents, team, gallery, sponsors, announcements, unread };
+    }, null),
+    safe(() => prisma.event.findMany({ where: { status: { in: ["UPCOMING", "ONGOING"] } }, orderBy: { date: "asc" }, take: 5 }), []),
+    safe(() => prisma.contactMessage.findMany({ orderBy: { createdAt: "desc" }, take: 5 }), []),
+  ]);
+
+  const cards = counts && [
+    { label: "Upcoming events", value: counts.upcomingEvents, sub: `${counts.events} total`, href: "/admin/events", icon: CalendarDays },
+    { label: "Unread messages", value: counts.unread, sub: "from the contact form", href: "/admin/messages", icon: Inbox },
+    { label: "Team members", value: counts.team, sub: "current & previous", href: "/admin/team", icon: Users },
+    { label: "Active sponsors", value: counts.sponsors, sub: "shown on website", href: "/admin/sponsors", icon: Handshake },
+    { label: "Gallery photos", value: counts.gallery, sub: "published", href: "/admin/gallery", icon: ImageIcon },
+    { label: "Announcements", value: counts.announcements, sub: "published", href: "/admin/announcements", icon: Megaphone },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-      </div>
+    <div>
+      <AdminHeader title="Dashboard" description="An overview of your website content and enquiries." />
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-        <h2 className="text-xl font-bold text-gray-800 mb-2">
-          Welcome back, {adminEmail}
-        </h2>
-        <p className="text-gray-600">
-          This is the Harvest Club administration panel. From here, you can manage the website's content, approve sponsors, and schedule events.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-        {/* Placeholder metric cards */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
-          <div className="p-3 bg-green-50 rounded-lg text-[var(--color-harvest-green)]">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-          </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500">Active Events</p>
-            <p className="text-2xl font-semibold text-gray-900">0</p>
-          </div>
+      {!cards ? (
+        <div className="admin-card border-amber-200 bg-amber-50 text-sm text-amber-900">
+          The database could not be reached, so live figures are unavailable. Check <code>DATABASE_URL</code> and try again.
         </div>
-
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
-          <div className="p-3 bg-blue-50 rounded-lg text-[var(--color-harvest-blue)]">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H14"></path></svg>
-          </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500">Contact Submissions</p>
-            <p className="text-2xl font-semibold text-gray-900">0</p>
-          </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {cards.map(({ label, value, sub, href, icon: Icon }) => (
+            <Link key={label} href={href} className="admin-card flex items-center gap-4 transition hover:border-[var(--color-harvest-green)]/50 hover:shadow-md">
+              <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-[var(--color-harvest-green)]/10 text-[var(--color-harvest-green)]">
+                <Icon size={22} />
+              </span>
+              <div>
+                <p className="text-sm text-[var(--color-muted)]">{label}</p>
+                <p className="font-display text-3xl font-bold leading-tight">{value}</p>
+                <p className="text-xs text-[var(--color-muted)]">{sub}</p>
+              </div>
+            </Link>
+          ))}
         </div>
+      )}
+
+      <div className="mt-8 grid gap-6 xl:grid-cols-2">
+        <section className="admin-card !p-0">
+          <div className="flex items-center justify-between border-b border-[var(--color-line)] px-5 py-4">
+            <h2 className="font-semibold">Upcoming events</h2>
+            <Link href="/admin/events" className="inline-flex items-center gap-1 text-sm text-[var(--color-harvest-green)] hover:underline">Manage <ArrowRight size={14} /></Link>
+          </div>
+          {upcoming.length === 0 ? <Empty>No upcoming events. <Link href="/admin/events" className="text-[var(--color-harvest-green)] underline">Create one</Link>.</Empty> : (
+            <ul className="divide-y divide-[var(--color-line)]">
+              {upcoming.map((e) => (
+                <li key={e.id} className="flex items-center justify-between gap-4 px-5 py-3.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{e.title}</p>
+                    <p className="text-xs text-[var(--color-muted)]">{categoryLabel(e.category)}</p>
+                  </div>
+                  <time className="shrink-0 text-xs text-[var(--color-muted)]">{formatDate(e.date)}</time>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="admin-card !p-0">
+          <div className="flex items-center justify-between border-b border-[var(--color-line)] px-5 py-4">
+            <h2 className="font-semibold">Recent messages</h2>
+            <Link href="/admin/messages" className="inline-flex items-center gap-1 text-sm text-[var(--color-harvest-green)] hover:underline">Inbox <ArrowRight size={14} /></Link>
+          </div>
+          {messages.length === 0 ? <Empty>No messages yet.</Empty> : (
+            <ul className="divide-y divide-[var(--color-line)]">
+              {messages.map((m) => (
+                <li key={m.id} className="px-5 py-3.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="truncate text-sm font-medium">
+                      {m.status === "UNREAD" && <span className="mr-2 inline-block h-2 w-2 rounded-full bg-[var(--color-harvest-accent)]" aria-label="unread" />}
+                      {m.name}
+                    </p>
+                    <time className="shrink-0 text-xs text-[var(--color-muted)]">{formatDate(m.createdAt)}</time>
+                  </div>
+                  <p className="mt-0.5 truncate text-xs text-[var(--color-muted)]">{m.subject || m.message}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
     </div>
   );

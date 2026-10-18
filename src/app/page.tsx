@@ -1,145 +1,180 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ArrowRight, Calendar, Users, Lightbulb, Handshake } from "lucide-react";
 import HeroSection from "@/components/ui/HeroSection";
-import { prisma } from "@/lib/prisma";
+import { EventGrid } from "@/components/ui/EventGrid";
+import { prisma, safe, formatDate, safeUrl } from "@/lib/site";
 
 export const revalidate = 60;
 
+const startOfYesterday = () => new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+const pillars = [
+  { icon: Lightbulb, title: "Innovation", text: "Hackathons and project showcases where students turn agritech ideas into working prototypes." },
+  { icon: Users, title: "Learning", text: "Workshops and seminars led by faculty, alumni and industry practitioners." },
+  { icon: Handshake, title: "Partnerships", text: "Industrial visits and sponsor collaborations that connect classrooms to the field." },
+];
+
 export default async function Home() {
-  // @ts-ignore Prisma client might need generation
-  let settings = await prisma.siteSettings.findUnique({ where: { id: "global" } });
-  
-  if (!settings) {
-    settings = {
-      id: "global",
-      showAboutPreview: true,
-      showActivities: true,
-      showSponsors: true,
-      showCTA: true,
-      updatedAt: new Date(),
-    };
-  }
+  const defaults = { showAboutPreview: true, showActivities: true, showSponsors: true, showCTA: true };
+  const settings = await safe(
+    async () => (await prisma.siteSettings.findUnique({ where: { id: "global" } })) ?? defaults,
+    defaults
+  );
 
-  // @ts-ignore Prisma client might need generation
-  const featuredEvents = await prisma.event.findMany({
-    where: { isFeatured: true } as any,
-    orderBy: { date: 'desc' },
-    take: 3
-  });
+  const [featured, upcoming, sponsors, announcements, counts] = await Promise.all([
+    safe(() => prisma.event.findMany({ where: { isFeatured: true }, orderBy: { date: "desc" }, take: 3 }), []),
+    safe(() => prisma.event.findMany({ where: { status: { in: ["UPCOMING", "ONGOING"] }, date: { gte: startOfYesterday() } }, orderBy: { date: "asc" }, take: 1 }), []),
+    safe(() => prisma.sponsor.findMany({ where: { isActive: true }, orderBy: [{ orderIndex: "asc" }, { createdAt: "asc" }] }), []),
+    safe(() => prisma.announcement.findMany({ where: { isPublished: true }, orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }], take: 3 }), []),
+    safe(async () => ({
+      events: await prisma.event.count(),
+      completed: await prisma.event.count({ where: { status: "COMPLETED" } }),
+      sponsors: await prisma.sponsor.count({ where: { isActive: true } }),
+    }), { events: 0, completed: 0, sponsors: 0 }),
+  ]);
 
-  const sponsors = await prisma.sponsor.findMany({
-    where: { isActive: true }
-  });
+  const stats = [
+    { label: "Events organised", value: counts.completed },
+    { label: "Total events", value: counts.events },
+    { label: "Partners", value: counts.sponsors },
+  ].filter((s) => s.value > 0);
+
+  const next = upcoming[0];
 
   return (
-    <div className="flex flex-col min-h-screen">
-      
-      {/* Hero Section */}
-      <HeroSection />
+    <>
+      <HeroSection stats={stats} />
 
-      {/* About Preview */}
-      {settings.showAboutPreview && (
-        <section className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="lg:grid lg:grid-cols-2 lg:gap-16 items-center">
-              <div className="mb-10 lg:mb-0">
-                <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl mb-6">
-                  Technology growing from ideas.
-                </h2>
-                <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-                  We believe in harnessing the power of modern technology to drive agricultural and sustainable innovation. Our community brings together students from diverse backgrounds to solve real-world challenges.
-                </p>
-                <Link href="/about" className="text-[var(--color-harvest-green)] font-semibold hover:text-[var(--color-harvest-green-dark)] inline-flex items-center">
-                  Learn more about our mission
-                  <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                </Link>
-              </div>
-              <div className="relative h-80 rounded-2xl overflow-hidden shadow-xl">
-                 <div className="absolute inset-0 bg-gradient-to-tr from-[var(--color-harvest-green)] to-[var(--color-harvest-blue)] opacity-20 z-10 rounded-2xl"></div>
-                 <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
-                    <span>[About Image Placeholder]</span>
-                 </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* What We Do */}
-      {settings.showActivities && (
-        <section className="py-20 bg-slate-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-3xl mx-auto mb-16">
-              <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">Featured Events</h2>
-              <p className="mt-4 text-lg text-gray-600">Building skills, fostering innovation, and driving change.</p>
-            </div>
-            {featuredEvents.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {featuredEvents.map((item: any, idx: number) => (
-                  <div key={idx} className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 hover-scale transition-transform">
-                    {item.coverImage ? (
-                      <div className="w-full h-40 relative rounded-lg overflow-hidden mb-4">
-                        <Image src={item.coverImage} alt={item.title} fill className="object-cover" />
-                      </div>
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-6">
-                        <div className="w-6 h-6 bg-[var(--color-harvest-green)] rounded-full"></div>
-                      </div>
-                    )}
-                    <h3 className="text-xl font-bold text-gray-900 mb-3">{item.title}</h3>
-                    <p className="text-gray-600 line-clamp-3">{item.description}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center text-gray-500 py-8">No featured events yet.</div>
-            )}
-            <div className="text-center mt-12">
-              <Link href="/events" className="text-[var(--color-harvest-blue)] font-semibold hover:underline">View all events &rarr;</Link>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Sponsors Showcase - Animated Marquee */}
-      {settings.showSponsors && sponsors.length > 0 && (
-        <section className="py-16 bg-white overflow-hidden border-y border-gray-100">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-8">
-            <h2 className="text-sm font-semibold tracking-wide text-gray-500 uppercase">Supported By</h2>
-          </div>
-          <div className="marquee-container">
-            <div className="marquee-content">
-              {[...sponsors, ...sponsors, ...sponsors].map((item, idx) => (
-                <div key={idx} className="flex flex-col items-center justify-center w-40 h-20 grayscale hover:grayscale-0 transition-all opacity-60 hover:opacity-100">
-                  {item.logoUrl ? (
-                    <div className="relative w-full h-full">
-                      <Image src={item.logoUrl} alt={item.name} fill className="object-contain" />
-                    </div>
-                  ) : (
-                    <span className="text-xl font-bold text-gray-400">{item.name}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* CTA Section */}
-      {settings.showCTA && (
-        <section className="bg-[var(--color-harvest-blue-dark)] py-20">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl font-bold text-white sm:text-4xl mb-6">Ready to innovate with us?</h2>
-            <p className="text-xl text-blue-100 mb-10 max-w-2xl mx-auto">
-              Join the Harvest Club community and start building the technology of tomorrow.
+      {next && (
+        <section className="border-b border-[var(--color-line)] bg-white">
+          <div className="container-page flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="flex items-center gap-3 text-sm text-[var(--color-ink)]">
+              <Calendar size={18} className="text-[var(--color-harvest-green)]" />
+              <span><span className="font-semibold">Next event:</span> {next.title} · {formatDate(next.date)}</span>
             </p>
-            <Link href="/contact" className="inline-flex justify-center items-center px-8 py-3 border border-transparent text-base font-medium rounded-full shadow-sm text-[var(--color-harvest-blue-dark)] bg-white hover:bg-gray-50 transition-colors">
-              Get in Touch
+            <Link href={`/events/${next.id}`} className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-harvest-green)] hover:underline">
+              Event details <ArrowRight size={14} />
             </Link>
           </div>
         </section>
       )}
-      
-    </div>
+
+      {settings.showAboutPreview && (
+        <section className="section">
+          <div className="container-page">
+            <div className="max-w-2xl">
+              <p className="eyebrow">What we do</p>
+              <h2 className="font-display mt-3 text-3xl font-bold text-[var(--color-ink)] sm:text-4xl">
+                Bridging agriculture and modern technology
+              </h2>
+              <p className="mt-4 text-lg leading-relaxed text-[var(--color-muted)]">
+                Harvest Club empowers students to build sustainable, impactful solutions by combining
+                technical skill with an understanding of real agricultural challenges.
+              </p>
+            </div>
+            <div className="mt-10 grid gap-6 md:grid-cols-3">
+              {pillars.map(({ icon: Icon, title, text }) => (
+                <div key={title} className="card p-6">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-green text-white shadow-md shadow-green-900/20">
+                    <Icon size={20} />
+                  </span>
+                  <h3 className="font-display mt-4 text-xl font-bold">{title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">{text}</p>
+                </div>
+              ))}
+            </div>
+            <Link href="/about" className="mt-8 inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-harvest-green)] hover:underline">
+              Learn more about our mission <ArrowRight size={14} />
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {settings.showActivities && (
+        <section className="section bg-[var(--color-paper)]">
+          <div className="container-page">
+            <div className="mb-10 flex items-end justify-between gap-4">
+              <div>
+                <p className="eyebrow">Highlights</p>
+                <h2 className="font-display mt-3 text-3xl font-bold sm:text-4xl">Featured events</h2>
+              </div>
+              <Link href="/events" className="hidden items-center gap-1 text-sm font-semibold text-[var(--color-harvest-green)] hover:underline sm:inline-flex">
+                All events <ArrowRight size={14} />
+              </Link>
+            </div>
+            <EventGrid swipe events={featured} emptyText="Featured events will appear here soon." />
+          </div>
+        </section>
+      )}
+
+      {announcements.length > 0 && (
+        <section className="section">
+          <div className="container-page">
+            <div className="mb-8 flex items-end justify-between">
+              <div>
+                <p className="eyebrow">News</p>
+                <h2 className="font-display mt-3 text-3xl font-bold sm:text-4xl">Latest announcements</h2>
+              </div>
+              <Link href="/announcements" className="text-sm font-semibold text-[var(--color-harvest-green)] hover:underline">View all</Link>
+            </div>
+            <ul className="divide-y divide-[var(--color-line)] rounded-xl border border-[var(--color-line)]">
+              {announcements.map((a) => (
+                <li key={a.id} className="flex flex-col gap-1 p-5 sm:flex-row sm:items-baseline sm:justify-between">
+                  <div>
+                    <p className="font-semibold text-[var(--color-ink)]">{a.title}</p>
+                    <p className="mt-1 line-clamp-1 text-sm text-[var(--color-muted)]">{a.description}</p>
+                  </div>
+                  <time className="shrink-0 text-xs text-[var(--color-muted)]">{formatDate(a.createdAt)}</time>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+
+      {settings.showSponsors && sponsors.length > 0 && (
+        <section className="border-y border-[var(--color-line)] py-14">
+          <p className="eyebrow mb-8 text-center">Supported by</p>
+          <div className="marquee">
+            {[0, 1].map((copy) => (
+              <div key={copy} className="marquee-track" aria-hidden={copy === 1}>
+                {sponsors.map((s) => {
+                  const href = safeUrl(s.websiteUrl);
+                  const inner = s.logoUrl ? (
+                    <span className="relative block h-14 w-36">
+                      <Image src={s.logoUrl} alt={s.name} fill sizes="144px" className="object-contain" />
+                    </span>
+                  ) : (
+                    <span className="font-display text-xl font-bold text-[var(--color-muted)]">{s.name}</span>
+                  );
+                  return href ? (
+                    <a key={s.id} href={href} target="_blank" rel="noopener noreferrer" tabIndex={copy === 1 ? -1 : 0} className="opacity-70 grayscale transition hover:opacity-100 hover:grayscale-0">{inner}</a>
+                  ) : (
+                    <span key={s.id} className="opacity-70">{inner}</span>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {settings.showCTA && (
+        <section className="section">
+          <div className="container-page">
+            <div className="rounded-3xl bg-gradient-harvest px-6 py-12 text-center text-white sm:px-16 sm:py-16">
+              <h2 className="font-display text-3xl font-bold sm:text-4xl">Partner with Harvest Club</h2>
+              <p className="mx-auto mt-4 max-w-xl text-blue-100">
+                Whether you want to sponsor an event, mentor students or collaborate on a project, we would be glad to hear from you.
+              </p>
+              <Link href="/contact" className="btn mt-8 w-full bg-white !min-h-12 text-[var(--color-harvest-blue-dark)] hover:bg-blue-50 sm:w-auto">
+                Get in touch <ArrowRight size={16} />
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+    </>
   );
 }

@@ -1,51 +1,85 @@
+import Link from "next/link";
+import Image from "next/image";
 import { Metadata } from "next";
+import PageHeader from "@/components/ui/PageHeader";
+import { prisma, safe, categoryLabel } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Gallery | Harvest Club",
-  description: "Explore photos from Harvest Club events, hackathons, and workshops.",
+  title: "Gallery",
+  description: "Photos from Harvest Club events, hackathons and workshops.",
 };
 
-const mockImages = [
-  { id: "1", url: "", category: "HACKATHON", caption: "She Leads opening ceremony" },
-  { id: "2", url: "", category: "WORKSHOP", caption: "Students working on IoT sensors" },
-  { id: "3", url: "", category: "INDUSTRIAL_VISIT", caption: "Vertical farming facility" },
-  { id: "4", url: "", category: "HACKATHON", caption: "Prize distribution" },
-];
+export const revalidate = 60;
 
-export default function GalleryPage() {
+export default async function GalleryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string }>;
+}) {
+  const { category } = await searchParams;
+
+  const images = await safe(
+    () => prisma.galleryImage.findMany({ orderBy: { createdAt: "desc" } }),
+    []
+  );
+
+  const categories = [...new Set(images.map((i) => i.category).filter((c) => c && c !== "ALL"))];
+  const active = category && categories.includes(category) ? category : null;
+  const visible = active ? images.filter((i) => i.category === active) : images;
+
+  const pill = (isActive: boolean) =>
+    `rounded-full border px-4 py-1.5 text-sm font-medium transition ${
+      isActive
+        ? "border-[var(--color-harvest-green)] bg-[var(--color-harvest-green)] text-white"
+        : "border-[var(--color-line)] bg-white text-[var(--color-muted)] hover:border-[var(--color-harvest-green)] hover:text-[var(--color-harvest-green)]"
+    }`;
+
   return (
-    <div className="flex flex-col min-h-screen bg-white py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        
-        <div className="mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Gallery</h1>
-          <p className="text-lg text-gray-600">A visual journey through our activities and events.</p>
-        </div>
+    <>
+      <PageHeader eyebrow="Gallery" title="Gallery" lead="A visual record of our activities and events." />
+      <div className="container-page py-12">
+        {categories.length > 0 && (
+          <nav aria-label="Filter by category" className="mb-8 flex flex-wrap gap-2">
+            <Link href="/gallery" className={pill(!active)}>All</Link>
+            {categories.map((c) => (
+              <Link key={c} href={`/gallery?category=${c}`} className={pill(active === c)}>
+                {categoryLabel(c)}
+              </Link>
+            ))}
+          </nav>
+        )}
 
-        {/* Categories (Static for now) */}
-        <div className="flex flex-wrap gap-2 mb-8 border-b border-gray-100 pb-6">
-          <button className="px-4 py-2 rounded-full text-sm font-medium bg-[var(--color-harvest-green)] text-white">All</button>
-          <button className="px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">Hackathons</button>
-          <button className="px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">Workshops</button>
-          <button className="px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">Visits</button>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-          {mockImages.map((img, idx) => (
-            <div key={idx} className="group relative aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover-scale">
-              {/* Placeholder */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
-                <svg className="w-10 h-10 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                <span className="text-xs uppercase tracking-wider">{img.category}</span>
-              </div>
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
-                <p className="text-white text-sm font-medium truncate">{img.caption}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        
+        {visible.length === 0 ? (
+          <div className="card border-dashed p-10 text-center text-sm text-[var(--color-muted)]">
+            Photos will be added after our upcoming events.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
+            {visible.map((img) => (
+              <a
+                key={img.id}
+                href={img.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative block aspect-square overflow-hidden rounded-lg bg-[var(--color-paper)]"
+              >
+                <Image
+                  src={img.url}
+                  alt={img.caption || "Harvest Club event photo"}
+                  fill
+                  sizes="(min-width:1280px) 25vw, (min-width:768px) 33vw, 50vw"
+                  className="object-cover transition duration-500 group-hover:scale-105"
+                />
+                {img.caption && (
+                  <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3 text-xs font-medium text-white opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100">
+                    {img.caption}
+                  </span>
+                )}
+              </a>
+            ))}
+          </div>
+        )}
       </div>
-    </div>
+    </>
   );
 }

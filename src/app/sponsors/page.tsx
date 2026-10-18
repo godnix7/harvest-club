@@ -1,89 +1,64 @@
 import { Metadata } from "next";
-import { prisma } from "@/lib/prisma";
 import Image from "next/image";
-import { AnimatedList } from "@/components/ui/AnimatedList";
+import PageHeader from "@/components/ui/PageHeader";
+import { prisma, safe, safeUrl, SPONSOR_TIERS } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Sponsors | Harvest Club",
-  description: "Partners and sponsors supporting Harvest Club.",
+  title: "Sponsors & Partners",
+  description: "Organisations supporting Harvest Club.",
 };
 
-// Next.js config for caching and revalidation
-export const revalidate = 60; // revalidate every 60 seconds
+export const revalidate = 60;
 
 export default async function SponsorsPage() {
-  const sponsors = await prisma.sponsor.findMany({
-    where: { isActive: true },
-    orderBy: [
-      { orderIndex: 'asc' },
-      { createdAt: 'asc' }
-    ]
-  });
+  const sponsors = await safe(
+    () => prisma.sponsor.findMany({ where: { isActive: true }, orderBy: [{ orderIndex: "asc" }, { createdAt: "asc" }] }),
+    []
+  );
 
-  const validSponsors = sponsors || [];
-
-  const groupedSponsors = validSponsors.reduce((acc, sponsor) => {
-    if (!acc[sponsor.tier]) acc[sponsor.tier] = [];
-    acc[sponsor.tier].push(sponsor);
-    return acc;
-  }, {} as Record<string, typeof validSponsors>);
-
-  const tierOrder = ["TITLE", "PLATINUM", "GOLD", "SILVER", "PARTNER"];
+  const tiers = SPONSOR_TIERS.map((tier) => ({ tier, items: sponsors.filter((s) => s.tier === tier) })).filter((t) => t.items.length);
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full text-center">
-        
-        <div className="mb-16">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Our Sponsors & Partners</h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            We are immensely grateful to the organizations that support our mission and make our events possible.
-          </p>
-        </div>
-
-        {validSponsors.length === 0 && (
-          <div className="text-gray-500 py-12">
-            Our sponsorship portfolio is currently being updated.
+    <>
+      <PageHeader
+        eyebrow="Partners"
+        title="Sponsors & partners"
+        lead="We are grateful to the organisations that support our mission and make our events possible."
+      />
+      <div className="container-page space-y-14 py-14">
+        {tiers.length === 0 && (
+          <div className="card border-dashed p-10 text-center text-sm text-[var(--color-muted)]">
+            Our partner list is being updated.
           </div>
         )}
-
-        {tierOrder.map(tier => {
-          const sponsorsInTier = groupedSponsors[tier];
-          if (!sponsorsInTier || sponsorsInTier.length === 0) return null;
-
-          return (
-            <div key={tier} className="mb-16 last:mb-0">
-              <h2 className="text-2xl font-bold text-[var(--color-harvest-blue-dark)] mb-8 capitalize">
-                {tier.toLowerCase()} Sponsors
-              </h2>
-              <AnimatedList className="flex flex-wrap justify-center gap-8">
-                {sponsorsInTier.map(sponsor => (
-                  <div key={sponsor.id} className="bg-white/70 backdrop-blur-md p-8 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/40 hover:shadow-[0_8px_30px_rgb(0,0,0,0.1)] transition-shadow hover-scale max-w-sm w-full flex flex-col items-center">
-                    <div className="w-32 h-32 relative bg-white rounded-xl shadow-inner overflow-hidden flex items-center justify-center mb-6 grayscale hover:grayscale-0 transition-all p-4 border border-gray-100">
-                      {sponsor.logoUrl ? (
-                        <Image src={sponsor.logoUrl} alt={sponsor.name} fill className="object-contain p-2" sizes="128px" />
+        {tiers.map(({ tier, items }) => (
+          <section key={tier}>
+            <h2 className="eyebrow mb-5 border-b border-[var(--color-line)] pb-3">{tier.toLowerCase()} {tier === "PARTNER" ? "partners" : "sponsors"}</h2>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {items.map((s) => {
+                const href = safeUrl(s.websiteUrl);
+                return (
+                  <article key={s.id} className="card card-hover flex flex-col items-center p-7 text-center">
+                    <div className="relative flex h-24 w-full items-center justify-center">
+                      {s.logoUrl ? (
+                        <Image src={s.logoUrl} alt={`${s.name} logo`} fill sizes="300px" className="object-contain" />
                       ) : (
-                        <span className="text-xs text-gray-400 font-bold">{sponsor.name.charAt(0)}</span>
+                        <span className="font-display text-2xl font-bold text-[var(--color-muted)]">{s.name}</span>
                       )}
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 text-center mb-2">
-                      {sponsor.websiteUrl ? (
-                        <a href={sponsor.websiteUrl} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--color-harvest-green)] transition-colors">
-                          {sponsor.name}
-                        </a>
-                      ) : sponsor.name}
+                    <h3 className="mt-5 font-semibold">
+                      {href ? (
+                        <a href={href} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--color-harvest-green)] hover:underline">{s.name}</a>
+                      ) : s.name}
                     </h3>
-                    {sponsor.description && (
-                      <p className="text-gray-500 text-center text-sm">{sponsor.description}</p>
-                    )}
-                  </div>
-                ))}
-              </AnimatedList>
+                    {s.description && <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">{s.description}</p>}
+                  </article>
+                );
+              })}
             </div>
-          );
-        })}
-
+          </section>
+        ))}
       </div>
-    </div>
+    </>
   );
 }

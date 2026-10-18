@@ -2,86 +2,61 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { cookies } from "next/headers";
+import { guard, text, optional, errorMessage, type ActionResult } from "@/lib/admin";
 
-export async function createAnnouncement(formData: FormData) {
-  const cookieStore = await cookies();
-  const isAuthenticated = cookieStore.get("admin_session")?.value === "authenticated";
-
-  if (!isAuthenticated) {
-    return { error: "Unauthorized" };
-  }
-
-  const title = formData.get("title") as string;
-  const description = formData.get("description") as string;
-  const category = formData.get("category") as string;
-  const isFeatured = formData.get("isFeatured") === "on";
-
-  if (!title || !description) {
-    return { error: "Title and description are required" };
-  }
-
-  try {
-    await prisma.announcement.create({
-      data: {
-        title,
-        description,
-        category,
-        isFeatured,
-        isPublished: true
-      }
-    });
-
-    revalidatePath("/announcements");
-    revalidatePath("/");
-    revalidatePath("/admin/announcements");
-    return { success: true };
-  } catch (error: any) {
-    return { error: error.message };
-  }
+function refresh() {
+  revalidatePath("/");
+  revalidatePath("/announcements");
+  revalidatePath("/admin/announcements");
+  revalidatePath("/admin");
 }
 
-export async function deleteAnnouncement(id: string) {
-  const cookieStore = await cookies();
-  const isAuthenticated = cookieStore.get("admin_session")?.value === "authenticated";
+export async function saveAnnouncement(id: string | null, fd: FormData): Promise<ActionResult> {
+  const denied = await guard();
+  if (denied) return denied;
 
-  if (!isAuthenticated) {
-    return { error: "Unauthorized" };
-  }
+  const title = text(fd, "title");
+  const description = text(fd, "description");
+  if (!title || !description) return { error: "Title and message are required." };
+
+  const data = {
+    title,
+    description,
+    category: optional(fd, "category"),
+    isFeatured: fd.get("isFeatured") === "on",
+    isPublished: fd.get("isPublished") === "on",
+  };
 
   try {
-    await prisma.announcement.delete({
-      where: { id }
-    });
-
-    revalidatePath("/announcements");
-    revalidatePath("/");
-    revalidatePath("/admin/announcements");
+    if (id) await prisma.announcement.update({ where: { id }, data });
+    else await prisma.announcement.create({ data });
+    refresh();
     return { success: true };
-  } catch (error: any) {
-    return { error: error.message };
-  }
-}
-
-export async function getAnnouncements() {
-  const cookieStore = await cookies();
-  const isAuthenticated = cookieStore.get("admin_session")?.value === "authenticated";
-
-  if (!isAuthenticated) {
-    return [];
-  }
-
-  try {
-    const announcements = await prisma.announcement.findMany({
-      orderBy: { createdAt: 'desc' }
-    });
-    return announcements.map(a => ({
-      ...a,
-      createdAt: a.createdAt.toISOString(),
-      updatedAt: a.updatedAt.toISOString(),
-    }));
   } catch (error) {
-    console.error(error);
-    return [];
+    return { error: errorMessage(error) };
+  }
+}
+
+export async function setPublished(id: string, isPublished: boolean): Promise<ActionResult> {
+  const denied = await guard();
+  if (denied) return denied;
+  try {
+    await prisma.announcement.update({ where: { id }, data: { isPublished } });
+    refresh();
+    return { success: true };
+  } catch (error) {
+    return { error: errorMessage(error) };
+  }
+}
+
+export async function deleteAnnouncement(id: string): Promise<ActionResult> {
+  const denied = await guard();
+  if (denied) return denied;
+  try {
+    await prisma.announcement.delete({ where: { id } });
+    refresh();
+    return { success: true };
+  } catch (error) {
+    return { error: errorMessage(error) };
   }
 }

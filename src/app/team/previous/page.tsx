@@ -1,61 +1,61 @@
 import Link from "next/link";
 import { Metadata } from "next";
+import { ArrowLeft } from "lucide-react";
+import PageHeader from "@/components/ui/PageHeader";
+import { prisma, safe } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Previous Teams | Harvest Club",
-  description: "Historical rosters of Harvest Club.",
+  title: "Previous Teams",
+  description: "Past leaders and members of Harvest Club.",
 };
 
-const mockPrevious = [
-  { id: "p1", name: "Amit Singh", position: "President", year: "2024-2025" },
-  { id: "p2", name: "Sneha Reddy", position: "Technical Lead", year: "2024-2025" },
-];
+export const revalidate = 60;
 
-export default function PreviousTeamsPage() {
-  // Group by year
-  const groupedByYear = mockPrevious.reduce((acc, curr) => {
-    if (!acc[curr.year]) acc[curr.year] = [];
-    acc[curr.year].push(curr);
-    return acc;
-  }, {} as Record<string, typeof mockPrevious>);
+export default async function PreviousTeamsPage() {
+  const members = await safe(
+    () =>
+      prisma.teamMember.findMany({
+        where: { category: "PREVIOUS" },
+        orderBy: [{ orderIndex: "asc" }, { createdAt: "asc" }],
+      }),
+    []
+  );
+
+  const byYear = new Map<string, typeof members>();
+  for (const m of members) {
+    const year = m.year || "Earlier";
+    byYear.set(year, [...(byYear.get(year) ?? []), m]);
+  }
+  const years = [...byYear.keys()].sort().reverse();
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 py-12">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        
-        <Link href="/team" className="inline-flex items-center text-gray-500 hover:text-[var(--color-harvest-blue)] mb-8 transition-colors">
-          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-          Back to Current Team
+    <>
+      <PageHeader eyebrow="Archive" title="Previous teams" lead="Honouring the leaders and members who built Harvest Club.">
+        <Link href="/team" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-harvest-green)] hover:underline">
+          <ArrowLeft size={14} /> Current team
         </Link>
-        
-        <div className="mb-12 border-b border-gray-200 pb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Historical Teams</h1>
-          <p className="text-lg text-gray-600">Honoring the leaders and members who built Harvest Club.</p>
-        </div>
+      </PageHeader>
 
-        {Object.entries(groupedByYear).map(([year, members]) => (
-          <div key={year} className="mb-12">
-            <h2 className="text-2xl font-bold text-[var(--color-harvest-green-dark)] mb-6">{year}</h2>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <ul className="divide-y divide-gray-100">
-                {members.map(member => (
-                  <li key={member.id} className="p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between hover:bg-gray-50 transition-colors">
-                    <div>
-                      <p className="text-lg font-bold text-gray-900">{member.name}</p>
-                    </div>
-                    <div className="mt-2 sm:mt-0">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-50 text-green-700">
-                        {member.position}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
+      <div className="container-page max-w-3xl space-y-10 py-14">
+        {years.length === 0 && (
+          <div className="card border-dashed p-10 text-center text-sm text-[var(--color-muted)]">
+            Previous team records will be added soon.
           </div>
+        )}
+        {years.map((year) => (
+          <section key={year}>
+            <h2 className="font-display mb-4 text-2xl font-bold text-[var(--color-harvest-green-dark)]">{year}</h2>
+            <ul className="card divide-y divide-[var(--color-line)] overflow-hidden">
+              {byYear.get(year)!.map((m) => (
+                <li key={m.id} className="flex flex-col gap-1 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <span className="font-semibold">{m.name}</span>
+                  <span className="badge bg-[var(--color-harvest-green)]/10 text-[var(--color-harvest-green-dark)]">{m.position}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
         ))}
-        
       </div>
-    </div>
+    </>
   );
 }
