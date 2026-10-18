@@ -16,8 +16,9 @@ export const EVENT_STATUSES: Record<string, string> = {
 
 export const TEAM_CATEGORIES: Record<string, string> = {
   FACULTY: "Faculty Coordinators",
-  EXECUTIVE: "Executive Committee",
-  CORE: "Core Team",
+  EXECUTIVE: "Leadership (President, Vice President, Secretary…)",
+  CORE: "Team member (core / wing teams)",
+  MENTOR: "Resource Person / Mentor",
   PREVIOUS: "Previous Teams",
 };
 

@@ -23,6 +23,14 @@ export async function saveMember(id: string | null, fd: FormData): Promise<Actio
   const linkedin = httpUrl(optional(fd, "linkedin"));
   const email = optionalEmail(optional(fd, "email"));
   const phone = optionalPhone(optional(fd, "phone"));
+  const teamGroupId = optional(fd, "teamGroupId");
+
+  if (teamGroupId) {
+    const exists = await prisma.teamGroup
+      .findUnique({ where: { id: teamGroupId }, select: { id: true } })
+      .catch(() => null);
+    if (!exists) return { error: "That team no longer exists. Reload the page and try again." };
+  }
 
   if (!name || !position) return { error: "Name and position are required." };
   if (!(category in TEAM_CATEGORIES)) return { error: "Choose a valid group." };
@@ -43,6 +51,7 @@ export async function saveMember(id: string | null, fd: FormData): Promise<Actio
     photoUrl,
     email,
     phone,
+    teamGroupId,
     socialLinks: linkedin ? JSON.stringify({ linkedin }) : null,
   };
 

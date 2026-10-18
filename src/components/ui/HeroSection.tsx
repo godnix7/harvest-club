@@ -1,9 +1,15 @@
 import Link from "next/link";
 import { ArrowRight, Leaf } from "lucide-react";
 
-type Props = { stats: { label: string; value: number }[] };
+type Props = {
+  stats: { label: string; value: number }[];
+  clubName: string;
+  tagline: string;
+  title: string;
+  subtitle: string;
+};
 
-export default function HeroSection({ stats }: Props) {
+export default function HeroSection({ stats, clubName, tagline, title, subtitle }: Props) {
   return (
     <section className="relative overflow-hidden bg-gradient-soft">
       {/* Soft brand-colour glows */}
@@ -12,18 +18,17 @@ export default function HeroSection({ stats }: Props) {
 
       <div className="container-page relative flex flex-col items-center py-14 text-center sm:py-24 lg:py-28">
         <span className="eyebrow !bg-white/80 shadow-sm">
-          <Leaf size={14} /> Cultivating the future of agritech
+          <Leaf size={14} /> {tagline}
         </span>
 
         <h1 className="font-display mt-6 text-[2.6rem] font-extrabold leading-[1.05] text-[var(--color-ink)] sm:text-6xl lg:text-7xl">
-          <span className="gradient-text">Harvest</span>
+          <span className="gradient-text">{clubName.replace(/\s+club$/i, "")}</span>
           <br />
-          <span className="text-[var(--color-harvest-blue-dark)]">Agritech Innovation</span>
+          <span className="text-[var(--color-harvest-blue-dark)]">{title}</span>
         </h1>
 
         <p className="mt-5 max-w-xl text-base leading-relaxed text-[var(--color-muted)] sm:mt-6 sm:text-xl">
-          A student community exploring where technology meets nature — through hackathons,
-          workshops, industry visits and ideas that grow.
+          {subtitle}
         </p>
 
         <div className="mt-8 flex w-full flex-col gap-3 sm:mt-10 sm:w-auto sm:flex-row">

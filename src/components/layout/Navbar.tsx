@@ -32,7 +32,10 @@ const moreLinks = [
   { name: "Contact us", href: "/contact", icon: Mail },
 ];
 
-export default function Navbar() {
+export default function Navbar({ clubName = "Harvest Club" }: { clubName?: string }) {
+  const words = clubName.trim().split(/\s+/);
+  const lastWord = words.length > 1 ? words[words.length - 1] : "";
+  const firstWords = words.length > 1 ? words.slice(0, -1).join(" ") : clubName;
   const [openPath, setOpenPath] = useState<string | null>(null);
   const pathname = usePathname();
   // The sheet is tied to the page it was opened on, so navigating closes it.
@@ -56,7 +59,7 @@ export default function Navbar() {
           <Link href="/" className="flex items-center gap-2.5">
             <Image src="/logo.png" alt="" width={40} height={40} className="h-9 w-9 object-contain lg:h-10 lg:w-10" priority />
             <span className="text-lg font-extrabold tracking-tight text-[var(--color-harvest-blue-dark)] lg:text-xl">
-              HARVEST <span className="text-[var(--color-harvest-green)]">CLUB</span>
+              <span className="uppercase">{firstWords}</span>{lastWord && <> <span className="uppercase text-[var(--color-harvest-green)]">{lastWord}</span></>}
             </span>
           </Link>
 

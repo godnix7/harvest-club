@@ -17,7 +17,7 @@ const items: Item[] = [
   { href: "/admin/sponsors", label: "Sponsors", icon: Handshake },
   { href: "/admin/announcements", label: "Announcements", icon: Megaphone },
   { href: "/admin/messages", label: "Messages", icon: Inbox },
-  { href: "/admin/settings", label: "Site settings", icon: Settings },
+  { href: "/admin/settings", label: "Site settings", icon: Settings, superOnly: true },
   { href: "/admin/users", label: "Admin users", icon: ShieldCheck, superOnly: true },
   { href: "/admin/account", label: "My account", icon: UserCog },
 ];

@@ -4,6 +4,7 @@ import { ArrowRight, Calendar, Users, Lightbulb, Handshake } from "lucide-react"
 import HeroSection from "@/components/ui/HeroSection";
 import { EventGrid } from "@/components/ui/EventGrid";
 import { prisma, safe, formatDate, safeUrl, safeLink } from "@/lib/site";
+import { getSiteConfig } from "@/lib/settings";
 
 export const revalidate = 60;
 
@@ -16,11 +17,9 @@ const pillars = [
 ];
 
 export default async function Home() {
-  const defaults = { showAboutPreview: true, showActivities: true, showSponsors: true, showCTA: true };
-
   // One parallel wave of queries (a single database round trip) instead of a chain.
-  const [settingsRow, featured, upcoming, sponsors, announcements, statusCounts] = await Promise.all([
-    safe(() => prisma.siteSettings.findUnique({ where: { id: "global" } }), null),
+  const [settings, featured, upcoming, sponsors, announcements, statusCounts] = await Promise.all([
+    getSiteConfig(),
     safe(() => prisma.event.findMany({ where: { isFeatured: true }, orderBy: { date: "desc" }, take: 3 }), []),
     safe(() => prisma.event.findMany({ where: { status: { in: ["UPCOMING", "ONGOING"] }, date: { gte: startOfYesterday() } }, orderBy: { date: "asc" }, take: 1 }), []),
     safe(() => prisma.sponsor.findMany({ where: { isActive: true }, orderBy: [{ orderIndex: "asc" }, { createdAt: "asc" }] }), []),
@@ -28,7 +27,6 @@ export default async function Home() {
     safe(() => prisma.event.groupBy({ by: ["status"], _count: true }), []),
   ]);
 
-  const settings = settingsRow ?? defaults;
   const totalEvents = statusCounts.reduce((n, c) => n + c._count, 0);
   const completed = statusCounts.find((c) => c.status === "COMPLETED")?._count ?? 0;
 
@@ -42,7 +40,7 @@ export default async function Home() {
 
   return (
     <>
-      <HeroSection stats={stats} />
+      <HeroSection stats={stats} clubName={settings.clubName} tagline={settings.tagline} title={settings.heroTitle} subtitle={settings.heroSubtitle} />
 
       {next && (
         <section className="border-b border-[var(--color-line)] bg-white">
@@ -172,7 +170,7 @@ export default async function Home() {
         <section className="section">
           <div className="container-page">
             <div className="rounded-3xl bg-gradient-harvest px-6 py-12 text-center text-white sm:px-16 sm:py-16">
-              <h2 className="font-display text-3xl font-bold sm:text-4xl">Partner with Harvest Club</h2>
+              <h2 className="font-display text-3xl font-bold sm:text-4xl">Partner with {settings.clubName}</h2>
               <p className="mx-auto mt-4 max-w-xl text-blue-100">
                 Whether you want to sponsor an event, mentor students or collaborate on a project, we would be glad to hear from you.
               </p>

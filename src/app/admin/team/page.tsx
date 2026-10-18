@@ -13,15 +13,18 @@ function linkedinOf(json?: string | null) {
 
 export default async function AdminTeamPage({ searchParams }: { searchParams: Promise<{ edit?: string }> }) {
   const { edit } = await searchParams;
-  const members = await safe(
-    () => prisma.teamMember.findMany({ orderBy: [{ category: "asc" }, { orderIndex: "asc" }, { createdAt: "asc" }] }),
-    []
-  );
+  const [members, groups] = await Promise.all([
+    safe(() => prisma.teamMember.findMany({ orderBy: [{ category: "asc" }, { orderIndex: "asc" }, { createdAt: "asc" }] }), []),
+    safe(() => prisma.teamGroup.findMany({ orderBy: [{ orderIndex: "asc" }, { name: "asc" }] }), []),
+  ]);
+  const groupName = new Map(groups.map((g) => [g.id, g.name]));
   const editing = edit ? members.find((m) => m.id === edit) : undefined;
 
   return (
     <div>
-      <AdminHeader title="Team" description="Faculty coordinators, committee members and previous teams shown on the website." />
+      <AdminHeader title="Team" description="Faculty, leadership, wing teams, resource persons and previous teams shown on the website.">
+        <Link href="/admin/team/groups" className="btn-outline">Manage teams / wings</Link>
+      </AdminHeader>
       <div className="grid gap-8 xl:grid-cols-3">
         <section className="admin-card h-fit">
           <div className="mb-4 flex items-center justify-between">
@@ -39,9 +42,15 @@ export default async function AdminTeamPage({ searchParams }: { searchParams: Pr
           >
             <Field label="Full name *"><input name="name" required defaultValue={editing?.name} className="field" /></Field>
             <Field label="Position *"><input name="position" required defaultValue={editing?.position} placeholder="e.g. President" className="field" /></Field>
-            <Field label="Group">
+            <Field label="Role group" hint="Leadership = President, Vice President, Secretary… Team member = belongs to a wing below.">
               <select name="category" defaultValue={editing?.category ?? "CORE"} className="field">
                 {Object.entries(TEAM_CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </Field>
+            <Field label="Team / wing" hint={groups.length ? "For team members, e.g. Web Development or Marketing." : "No wings yet. Create them with “Manage teams / wings”."}>
+              <select name="teamGroupId" defaultValue={editing?.teamGroupId ?? ""} className="field">
+                <option value="">— None —</option>
+                {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
               </select>
             </Field>
             <Field label="Department"><input name="department" defaultValue={editing?.department ?? ""} className="field" /></Field>
@@ -71,7 +80,7 @@ export default async function AdminTeamPage({ searchParams }: { searchParams: Pr
                 {members.map((m) => (
                   <tr key={m.id}>
                     <td className="admin-td"><p className="font-medium">{m.name}</p><p className="text-xs text-[var(--color-muted)]">{m.position}{m.year ? ` · ${m.year}` : ""}</p>{(m.email || m.phone) && <p className="text-xs text-[var(--color-muted)]">{[m.email, m.phone].filter(Boolean).join(" · ")}</p>}</td>
-                    <td className="admin-td"><StatusBadge tone={m.category === "PREVIOUS" ? "gray" : "green"}>{TEAM_CATEGORIES[m.category] ?? m.category}</StatusBadge></td>
+                    <td className="admin-td"><StatusBadge tone={m.category === "PREVIOUS" ? "gray" : "green"}>{TEAM_CATEGORIES[m.category]?.split(" (")[0] ?? m.category}</StatusBadge>{m.teamGroupId && groupName.get(m.teamGroupId) && <p className="mt-1 text-xs text-[var(--color-muted)]">{groupName.get(m.teamGroupId)}</p>}</td>
                     <td className="admin-td">{m.orderIndex}</td>
                     <td className="admin-td">
                       <div className="flex flex-wrap items-center gap-x-5 gap-y-1 md:justify-end">

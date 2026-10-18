@@ -30,6 +30,34 @@ model SiteSettings {
   showActivities   Boolean  @default(true)
   showSponsors     Boolean  @default(true)
   showCTA          Boolean  @default(true)
+
+  // Branding and homepage text (empty = built-in default)
+  clubName         String?
+  tagline          String?
+  heroTitle        String?
+  heroSubtitle     String?
+  missionText      String?
+  visionText       String?
+  footerText       String?
+
+  // Contact details and social links shown across the site
+  contactEmail     String?
+  contactPhone     String?
+  location         String?
+  linkedinUrl      String?
+  instagramUrl     String?
+  githubUrl        String?
+  youtubeUrl       String?
+
+  // Announcement banner at the top of every page
+  bannerText       String?
+  bannerLink       String?
+
+  // Privacy and availability
+  showTeamContacts Boolean  @default(true)
+  maintenanceMode  Boolean  @default(false)
+  maintenanceMessage String?
+
   updatedAt        DateTime @updatedAt
 }
 
@@ -43,6 +71,7 @@ model TeamMember {
   socialLinks String? // JSON string
   email      String?
   phone      String?
+  teamGroupId String?
   category   String   @default("CORE") // FACULTY, EXECUTIVE, CORE, PREVIOUS
   year       String?
   orderIndex Int      @default(0)
@@ -109,4 +138,14 @@ model AdminUser {
   lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+}
+
+// Wings / sub-teams shown as their own sections on the Team page (e.g. Web Development, Marketing).
+model TeamGroup {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  orderIndex  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

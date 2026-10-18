@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import PageHeader from "@/components/ui/PageHeader";
+import { getSiteConfig } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: "About",
@@ -14,12 +15,13 @@ const values = [
   { title: "Inclusion", text: "Programmes such as She Leads encourage wider participation and leadership in technology." },
 ];
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const config = await getSiteConfig();
   return (
     <>
       <PageHeader
         eyebrow="About us"
-        title="About Harvest Club"
+        title={`About ${config.clubName}`}
         lead="A student community fostering innovation at the intersection of agriculture and technology."
       />
 
@@ -27,18 +29,11 @@ export default function AboutPage() {
         <div className="container-page grid gap-12 lg:grid-cols-2">
           <div>
             <h2 className="font-display text-3xl font-bold">Our mission</h2>
-            <p className="mt-4 text-lg leading-relaxed text-[var(--color-muted)]">
-              Harvest Club is dedicated to bridging the gap between traditional agriculture and modern
-              technology. We empower students to build sustainable, innovative and impactful solutions
-              for the future.
-            </p>
+            <p className="mt-4 whitespace-pre-line text-lg leading-relaxed text-[var(--color-muted)]">{config.missionText}</p>
           </div>
           <div>
             <h2 className="font-display text-3xl font-bold">Our vision</h2>
-            <p className="mt-4 text-lg leading-relaxed text-[var(--color-muted)]">
-              To be the leading student community for agritech innovation — a network of forward-thinking
-              individuals who will shape the future of technology and nature.
-            </p>
+            <p className="mt-4 whitespace-pre-line text-lg leading-relaxed text-[var(--color-muted)]">{config.visionText}</p>
           </div>
         </div>
       </section>
