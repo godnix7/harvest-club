@@ -19,7 +19,7 @@ const items: Item[] = [
   { href: "/admin/messages", label: "Messages", icon: Inbox },
   { href: "/admin/settings", label: "Site settings", icon: Settings },
   { href: "/admin/users", label: "Admin users", icon: ShieldCheck, superOnly: true },
-  { href: "/admin/account", label: "My account", icon: UserCog, adminOnly: true },
+  { href: "/admin/account", label: "My account", icon: UserCog },
 ];
 
 export default function AdminNav({
@@ -47,7 +47,7 @@ export default function AdminNav({
       </div>
 
       <nav aria-label="Admin" className="flex gap-1 overflow-x-auto p-3 md:flex-1 md:flex-col md:overflow-y-auto">
-        {items.filter((i) => (i.superOnly ? role === "super" : i.adminOnly ? role === "admin" : true)).map(({ href, label, icon: Icon }) => (
+        {items.filter((i) => (i.superOnly ? role === "super" : true)).map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}

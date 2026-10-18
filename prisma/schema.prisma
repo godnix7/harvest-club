@@ -97,13 +97,14 @@ model ContactMessage {
   updatedAt DateTime @updatedAt
 }
 
-// Normal administrators (team members, faculty). The Super Admin is configured via
-// ADMIN_EMAIL / ADMIN_PASSWORD environment variables and is not stored here.
+// Administrators. role = SUPER can manage other admins; ADMIN manages content only.
+// The first SUPER is created automatically from ADMIN_EMAIL / ADMIN_PASSWORD on first login.
 model AdminUser {
   id           String    @id @default(cuid())
   email        String    @unique
   name         String
   passwordHash String
+  role         String    @default("ADMIN") // SUPER or ADMIN
   isActive     Boolean   @default(true)
   lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())

@@ -2,24 +2,29 @@ import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { getSession, type Session } from "@/lib/auth";
 
-export type CurrentAdmin = Session & { name: string };
+export type CurrentAdmin = Session & { name: string; uid: string };
 
 /**
- * The signed-in admin, fully validated: Super Admins come from the environment;
- * normal admins must still exist and be active in the database (so disabling an
- * account takes effect immediately, not when its session expires).
+ * The signed-in admin, fully validated against the database on every request:
+ * the account must still exist and be active, and the role comes from the database
+ * (not the cookie), so disabling or demoting someone takes effect immediately.
  */
 export const currentAdmin = cache(async (): Promise<CurrentAdmin | null> => {
   const session = await getSession();
-  if (!session) return null;
-  if (session.role === "super") return { ...session, name: "Super Admin" };
-  if (!session.uid) return null;
+  if (!session?.uid) return null; // sessions from before the database migration must sign in again
   try {
     const user = await prisma.adminUser.findUnique({
       where: { id: session.uid },
-      select: { isActive: true, name: true, email: true },
+      select: { id: true, isActive: true, name: true, email: true, role: true },
     });
-    return user?.isActive ? { ...session, email: user.email, name: user.name } : null;
+    if (!user?.isActive) return null;
+    return {
+      ...session,
+      uid: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role === "SUPER" ? "super" : "admin",
+    };
   } catch {
     return null;
   }

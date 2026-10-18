@@ -7,10 +7,9 @@ import {
   SESSION_MAX_AGE,
   createSessionToken,
   credentialsMatch,
-  type Session,
 } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { verifyPassword, DUMMY_HASH } from "@/lib/password";
+import { hashPassword, verifyPassword, DUMMY_HASH } from "@/lib/password";
 
 // Basic in-memory brute-force protection (per server instance).
 const attempts = new Map<string, { count: number; first: number }>();
@@ -38,31 +37,40 @@ export async function login(formData: FormData) {
     return { error: "Invalid email or password." };
   };
 
-  let session: Omit<Session, "exp"> | null = null;
+  let userId: string;
+  try {
+    const user = await prisma.adminUser.findUnique({ where: { email } });
+    const valid = await verifyPassword(password, user?.passwordHash ?? DUMMY_HASH);
 
-  // 1) Super Admin – credentials come from the server environment.
-  if (await credentialsMatch(email, password)) {
-    session = { role: "super", email };
-  } else {
-    // 2) Normal admin – stored in the database with a hashed password.
-    try {
-      const user = await prisma.adminUser.findUnique({ where: { email } });
-      const valid = await verifyPassword(password, user?.passwordHash ?? DUMMY_HASH);
-      if (!user || !valid) return fail();
+    if (user && valid) {
       if (!user.isActive) {
-        return { error: "This account has been disabled. Please contact the Super Admin." };
+        return { error: "This account has been disabled. Please contact a Super Admin." };
       }
-      await prisma.adminUser.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
-      session = { role: "admin", email: user.email, uid: user.id };
-    } catch (error) {
-      console.error("Admin login lookup failed:", error);
-      return { error: "Invalid email or password." };
+      userId = user.id;
+    } else {
+      // One-time bootstrap: while the database has no active Super Admin, the credentials
+      // from ADMIN_EMAIL / ADMIN_PASSWORD create the first one. After that they are ignored.
+      const superExists = (await prisma.adminUser.count({ where: { role: "SUPER", isActive: true } })) > 0;
+      if (superExists || !(await credentialsMatch(email, password))) return fail();
+
+      const passwordHash = await hashPassword(password);
+      const created = await prisma.adminUser.upsert({
+        where: { email },
+        update: { role: "SUPER", isActive: true, passwordHash },
+        create: { email, name: "Super Admin", role: "SUPER", passwordHash },
+      });
+      userId = created.id;
     }
+
+    await prisma.adminUser.update({ where: { id: userId }, data: { lastLoginAt: new Date() } });
+  } catch (error) {
+    console.error("Admin login failed:", error);
+    return { error: "Could not sign in right now. Please try again in a moment." };
   }
 
   attempts.delete(key);
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, await createSessionToken(session), {
+  cookieStore.set(SESSION_COOKIE, await createSessionToken({ role: "admin", email, uid: userId }), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",

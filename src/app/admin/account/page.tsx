@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "My account" };
 
 export default async function AccountPage() {
   const admin = await currentAdmin();
-  if (!admin || admin.role !== "admin") redirect("/admin");
+  if (!admin) redirect("/admin/login");
 
   return (
     <div className="max-w-xl">
@@ -19,6 +19,7 @@ export default async function AccountPage() {
         <dl className="grid gap-4 sm:grid-cols-2">
           <div><dt className="text-xs uppercase tracking-wider text-[var(--color-muted)]">Name</dt><dd className="mt-1 font-medium">{admin.name}</dd></div>
           <div><dt className="text-xs uppercase tracking-wider text-[var(--color-muted)]">Email</dt><dd className="mt-1 break-all font-medium">{admin.email}</dd></div>
+          <div><dt className="text-xs uppercase tracking-wider text-[var(--color-muted)]">Role</dt><dd className="mt-1 font-medium">{admin.role === "super" ? "Super Admin" : "Admin"}</dd></div>
         </dl>
       </div>
 

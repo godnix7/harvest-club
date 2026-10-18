@@ -7,7 +7,7 @@ import { hashPassword, verifyPassword, passwordProblem } from "@/lib/password";
 
 export async function changeOwnPassword(fd: FormData): Promise<ActionResult> {
   const admin = await currentAdmin();
-  if (!admin?.uid || admin.role !== "admin") return { error: "Your session has expired. Please sign in again." };
+  if (!admin) return { error: "Your session has expired. Please sign in again." };
 
   const current = String(fd.get("current") ?? "");
   const next = String(fd.get("next") ?? "");
