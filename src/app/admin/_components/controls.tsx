@@ -85,7 +85,12 @@ export function AdminForm({
       const fd = new FormData(form);
       const file = fd.get("imageFile");
       if (imageField && imageFolder && file instanceof File && file.size > 0) {
-        fd.set(imageField, await uploadImage(file, imageFolder));
+        try {
+          fd.set(imageField, await uploadImage(file, imageFolder));
+        } catch (uploadError) {
+          // If a link was pasted as well, use it instead of failing the whole save.
+          if (!String(fd.get(imageField) ?? "").trim()) throw uploadError;
+        }
       }
       fd.delete("imageFile");
       const result = await action(fd);
@@ -98,7 +103,12 @@ export function AdminForm({
         router.refresh();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      const msg = err instanceof Error ? err.message : "";
+      setError(
+        msg === "Failed to fetch"
+          ? "Could not reach the server. Check your internet connection and try again."
+          : msg || "Something went wrong."
+      );
     } finally {
       setBusy(false);
     }
