@@ -59,7 +59,7 @@ export default function GalleryUploader() {
       <label className="block">
         <span className="field-label">Photos</span>
         <input type="file" name="files" multiple accept="image/jpeg,image/png,image/webp,image/gif" className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-[var(--color-paper)] file:px-3 file:py-2 file:text-sm file:font-semibold" />
-        <span className="mt-1 block text-xs text-[var(--color-muted)]">You can select several photos at once · max 5 MB each.</span>
+        <span className="mt-1 block text-xs text-[var(--color-muted)]">You can select several photos at once · max 12 MB each (large photos are shrunk automatically).</span>
       </label>
       <label className="block">
         <span className="field-label">…or image URL</span>

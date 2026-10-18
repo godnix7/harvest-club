@@ -189,7 +189,7 @@ export function ImageField({ label = "Image", current }: { label?: string; curre
       )}
 
       <p className="text-xs text-[var(--color-muted)]">
-        JPG, PNG, WebP, GIF or SVG · max 5 MB. An uploaded file takes priority over the link.
+        JPG, PNG, WebP, GIF or SVG · max 12 MB (large photos are shrunk automatically). An uploaded file takes priority over the link.
         Google Drive links work if the file is shared as “Anyone with the link”.
       </p>
     </fieldset>
