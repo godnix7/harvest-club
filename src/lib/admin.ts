@@ -28,11 +28,29 @@ export function errorMessage(error: unknown): string {
     : "Something went wrong while saving. Please try again.";
 }
 
-/** Accepts only http(s) URLs (or empty). Returns null when invalid. */
+/**
+ * Google Drive share links open a web page, not an image. Convert them to a direct
+ * image URL (the file must be shared as "Anyone with the link").
+ */
+export function normalizeImageUrl(raw: string): string {
+  try {
+    const u = new URL(raw);
+    if (u.hostname === "drive.google.com" || u.hostname === "docs.google.com") {
+      const id =
+        u.pathname.match(/\/d\/([\w-]+)/)?.[1] ?? u.searchParams.get("id");
+      if (id) return `https://drive.google.com/thumbnail?id=${id}&sz=w1200`;
+    }
+  } catch {
+    /* handled by caller */
+  }
+  return raw;
+}
+
+/** Accepts only http(s) URLs (or empty). Returns null when empty, false when invalid. */
 export function httpUrl(value: string | null): string | null | false {
   if (!value) return null;
   try {
-    const u = new URL(value);
+    const u = new URL(normalizeImageUrl(value));
     return u.protocol === "http:" || u.protocol === "https:" ? u.toString() : false;
   } catch {
     return false;

@@ -117,16 +117,71 @@ export function AdminForm({
 }
 
 export function ImageField({ label = "Image", current }: { label?: string; current?: string | null }) {
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
+  const [url, setUrl] = useState(current ?? "");
+  const [fileName, setFileName] = useState("");
+  const [inputKey, setInputKey] = useState(0);
+
+  // An uploaded file takes priority; otherwise preview the pasted/current URL.
+  const preview = fileUrl ?? (url.trim() || null);
+  const hasAnything = Boolean(fileUrl || url.trim());
+
+  function clearAll() {
+    if (fileUrl) URL.revokeObjectURL(fileUrl);
+    setFileUrl(null);
+    setFileName("");
+    setUrl("");
+    setInputKey((k) => k + 1); // remounts the file input so the selection is really cleared
+  }
+
   return (
-    <fieldset className="space-y-2 rounded-lg border border-dashed border-[var(--color-line)] p-3">
+    <fieldset className="space-y-3 rounded-xl border border-dashed border-[var(--color-line)] p-3">
       <legend className="px-1 text-sm font-medium">{label}</legend>
-      {current && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={current} alt="" className="h-20 w-auto rounded border border-[var(--color-line)] object-cover" />
+
+      {preview && (
+        <div className="flex items-start gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={preview} alt="Preview" className="h-20 w-20 rounded-lg border border-[var(--color-line)] bg-gray-50 object-cover" />
+          <div className="min-w-0 flex-1 text-xs text-[var(--color-muted)]">
+            <p className="truncate font-medium text-[var(--color-ink)]">{fileName || "Image from link"}</p>
+            <p>{fileUrl ? "Will be uploaded when you save." : "Link preview — if blank, the link is not a public image."}</p>
+          </div>
+        </div>
       )}
-      <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml" className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-[var(--color-paper)] file:px-3 file:py-2 file:text-sm file:font-semibold" />
-      <input type="url" name="imageUrl" defaultValue={current ?? ""} placeholder="…or paste an image URL (https://)" className="field" />
-      <p className="text-xs text-[var(--color-muted)]">JPG, PNG, WebP, GIF or SVG · max 5 MB. An uploaded file takes priority over the URL.</p>
+
+      <input
+        key={inputKey}
+        type="file"
+        name="imageFile"
+        accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (fileUrl) URL.revokeObjectURL(fileUrl);
+          setFileUrl(f ? URL.createObjectURL(f) : null);
+          setFileName(f?.name ?? "");
+        }}
+        className="block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[var(--color-paper)] file:px-3 file:py-2 file:text-sm file:font-semibold"
+      />
+
+      <input
+        type="url"
+        name="imageUrl"
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        placeholder="…or paste an image link (https://)"
+        className="field"
+      />
+
+      {hasAnything && (
+        <button type="button" onClick={clearAll} className="text-sm font-semibold text-red-600 hover:underline">
+          Remove image
+        </button>
+      )}
+
+      <p className="text-xs text-[var(--color-muted)]">
+        JPG, PNG, WebP, GIF or SVG · max 5 MB. An uploaded file takes priority over the link.
+        Google Drive links work if the file is shared as “Anyone with the link”.
+      </p>
     </fieldset>
   );
 }
