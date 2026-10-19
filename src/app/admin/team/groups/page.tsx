@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { ArrowLeft } from "lucide-react";
 import { prisma, safe } from "@/lib/site";
 import { AdminHeader, Empty } from "../../_components/AdminPage";
-import { AdminForm, ActionButton, Field } from "../../_components/controls";
+import { AdminForm, FormPanel, ActionButton, Field } from "../../_components/controls";
 import { saveGroup, deleteGroup } from "./actions";
 
 export const metadata: Metadata = { title: "Teams / wings" };
@@ -24,11 +24,7 @@ export default async function TeamGroupsPage({ searchParams }: { searchParams: P
       </AdminHeader>
 
       <div className="grid gap-8 xl:grid-cols-3">
-        <section className="admin-card h-fit">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-semibold">{editing ? "Edit team" : "Add team"}</h2>
-            {editing && <Link href="/admin/team/groups" className="text-sm text-[var(--color-harvest-blue)] hover:underline">Cancel</Link>}
-          </div>
+        <FormPanel key={editing?.id ?? "new"} title={editing ? "Edit team" : "Add team"} defaultOpen={!!editing} cancelHref={editing ? "/admin/team/groups" : undefined}>
           <AdminForm
             key={editing?.id ?? "new"}
             action={saveGroup.bind(null, editing?.id ?? null)}
@@ -48,7 +44,7 @@ export default async function TeamGroupsPage({ searchParams }: { searchParams: P
               <li>A team appears on the website as soon as it has at least one member.</li>
             </ol>
           </div>
-        </section>
+        </FormPanel>
 
         <section className="admin-card !p-0 overflow-hidden xl:col-span-2">
           <ul className="divide-y divide-[var(--color-line)]">

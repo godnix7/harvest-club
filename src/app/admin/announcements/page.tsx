@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { prisma, safe, formatDate } from "@/lib/site";
 import { AdminHeader, Empty, StatusBadge } from "../_components/AdminPage";
-import { AdminForm, ActionButton, Field } from "../_components/controls";
+import { AdminForm, FormPanel, ActionButton, Field } from "../_components/controls";
 import LinkFields from "./LinkFields";
 import { saveAnnouncement, setPublished, deleteAnnouncement } from "./actions";
 
@@ -20,11 +20,7 @@ export default async function AdminAnnouncementsPage({ searchParams }: { searchP
     <div>
       <AdminHeader title="Announcements" description="Publish news and notices. Drafts stay hidden until published." />
       <div className="grid gap-8 xl:grid-cols-3">
-        <section className="admin-card h-fit">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-semibold">{editing ? "Edit announcement" : "New announcement"}</h2>
-            {editing && <Link href="/admin/announcements" className="text-sm text-[var(--color-harvest-blue)] hover:underline">Cancel</Link>}
-          </div>
+        <FormPanel key={editing?.id ?? "new"} title={editing ? "Edit announcement" : "New announcement"} defaultOpen={!!editing} cancelHref={editing ? "/admin/announcements" : undefined}>
           <AdminForm
             key={editing?.id ?? "new"}
             action={saveAnnouncement.bind(null, editing?.id ?? null)}
@@ -45,7 +41,7 @@ export default async function AdminAnnouncementsPage({ searchParams }: { searchP
               Pin as featured
             </label>
           </AdminForm>
-        </section>
+        </FormPanel>
 
         <section className="admin-card !p-0 overflow-hidden xl:col-span-2">
           <div className="overflow-x-auto">

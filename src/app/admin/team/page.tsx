@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { prisma, safe, TEAM_CATEGORIES } from "@/lib/site";
 import { AdminHeader, Empty, StatusBadge } from "../_components/AdminPage";
-import { AdminForm, ActionButton, Field, ImageField } from "../_components/controls";
+import { AdminForm, FormPanel, ActionButton, Field, ImageField } from "../_components/controls";
 import { saveMember, deleteMember } from "./actions";
 
 export const metadata: Metadata = { title: "Team" };
@@ -26,11 +26,7 @@ export default async function AdminTeamPage({ searchParams }: { searchParams: Pr
         <Link href="/admin/team/groups" className="btn-outline">Manage teams / wings</Link>
       </AdminHeader>
       <div className="grid gap-8 xl:grid-cols-3">
-        <section className="admin-card h-fit">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-semibold">{editing ? "Edit member" : "Add member"}</h2>
-            {editing && <Link href="/admin/team" className="text-sm text-[var(--color-harvest-blue)] hover:underline">Cancel</Link>}
-          </div>
+        <FormPanel key={editing?.id ?? `new-${group ?? ""}`} title={editing ? "Edit member" : "Add member"} defaultOpen={!!editing || !!group} cancelHref={editing ? "/admin/team" : undefined}>
           {!editing && group && groupName.has(group) && (
             <p className="mb-4 rounded-lg bg-[var(--color-paper)] px-3 py-2 text-sm">
               Adding a member to <strong>{groupName.get(group)}</strong>. <Link href="/admin/team" className="text-[var(--color-harvest-blue)] hover:underline">Clear</Link>
@@ -72,7 +68,7 @@ export default async function AdminTeamPage({ searchParams }: { searchParams: Pr
             <p className="-mt-2 text-xs text-[var(--color-muted)]">Email and mobile are shown publicly on the Team page. Leave them blank if the person prefers not to share.</p>
             <ImageField label="Photo" current={editing?.photoUrl} />
           </AdminForm>
-        </section>
+        </FormPanel>
 
         <section className="admin-card !p-0 overflow-hidden xl:col-span-2">
           <div className="overflow-x-auto">

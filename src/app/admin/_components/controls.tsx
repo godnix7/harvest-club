@@ -1,9 +1,49 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ActionResult } from "@/lib/admin";
 import { uploadImage } from "./upload";
+
+/**
+ * Card around an "add / edit" form. On phones (below 768px) it collapses behind a button so the list
+ * below stays visible; it opens automatically when editing. On tablets and larger it is always open.
+ */
+export function FormPanel({
+  title,
+  defaultOpen = false,
+  cancelHref,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  cancelHref?: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <section className="admin-card h-fit">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="font-semibold">{title}</h2>
+        <div className="flex items-center gap-3">
+          {cancelHref && (
+            <Link href={cancelHref} className="text-sm text-[var(--color-harvest-blue)] hover:underline">Cancel</Link>
+          )}
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            className="rounded-lg border border-[var(--color-line)] px-3 py-1.5 text-sm font-semibold text-[var(--color-harvest-green-dark)] md:hidden"
+          >
+            {open ? "Hide form" : "Show form"}
+          </button>
+        </div>
+      </div>
+      <div className={`mt-4 ${open ? "" : "hidden"} md:block`}>{children}</div>
+    </section>
+  );
+}
 
 /** Generic row action button (delete / toggle) with confirmation, busy state and error display. */
 export function ActionButton({

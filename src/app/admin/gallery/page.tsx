@@ -2,7 +2,7 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { prisma, safe, categoryLabel } from "@/lib/site";
 import { AdminHeader, Empty } from "../_components/AdminPage";
-import { ActionButton } from "../_components/controls";
+import { ActionButton, FormPanel } from "../_components/controls";
 import GalleryUploader from "./GalleryUploader";
 import { deleteGalleryImage } from "./actions";
 
@@ -15,10 +15,9 @@ export default async function AdminGalleryPage() {
     <div>
       <AdminHeader title="Gallery" description="Upload photos from events. They appear on the public gallery, filterable by category." />
       <div className="grid gap-8 xl:grid-cols-3">
-        <section className="admin-card h-fit">
-          <h2 className="mb-4 font-semibold">Add photos</h2>
+        <FormPanel title="Add photos">
           <GalleryUploader />
-        </section>
+        </FormPanel>
 
         <section className="xl:col-span-2">
           {images.length === 0 ? (

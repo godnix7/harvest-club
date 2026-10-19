@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { prisma, safe, SPONSOR_TIERS } from "@/lib/site";
 import { AdminHeader, Empty, StatusBadge } from "../_components/AdminPage";
-import { AdminForm, ActionButton, Field, ImageField } from "../_components/controls";
+import { AdminForm, FormPanel, ActionButton, Field, ImageField } from "../_components/controls";
 import { saveSponsor, setSponsorActive, deleteSponsor } from "./actions";
 
 export const metadata: Metadata = { title: "Sponsors" };
@@ -19,11 +19,7 @@ export default async function AdminSponsorsPage({ searchParams }: { searchParams
     <div>
       <AdminHeader title="Sponsors" description="Manage sponsor tiers, logos and visibility on the website." />
       <div className="grid gap-8 xl:grid-cols-3">
-        <section className="admin-card h-fit">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-semibold">{editing ? "Edit sponsor" : "Add sponsor"}</h2>
-            {editing && <Link href="/admin/sponsors" className="text-sm text-[var(--color-harvest-blue)] hover:underline">Cancel</Link>}
-          </div>
+        <FormPanel key={editing?.id ?? "new"} title={editing ? "Edit sponsor" : "Add sponsor"} defaultOpen={!!editing} cancelHref={editing ? "/admin/sponsors" : undefined}>
           <AdminForm
             key={editing?.id ?? "new"}
             action={saveSponsor.bind(null, editing?.id ?? null)}
@@ -50,7 +46,7 @@ export default async function AdminSponsorsPage({ searchParams }: { searchParams
               Visible on the website
             </label>
           </AdminForm>
-        </section>
+        </FormPanel>
 
         <section className="admin-card !p-0 overflow-hidden xl:col-span-2">
           <div className="overflow-x-auto">

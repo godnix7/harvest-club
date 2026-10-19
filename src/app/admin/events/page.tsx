@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { prisma, safe, formatDate, categoryLabel, EVENT_CATEGORIES, EVENT_STATUSES } from "@/lib/site";
 import { AdminHeader, Empty, StatusBadge } from "../_components/AdminPage";
-import { AdminForm, ActionButton, Field, ImageField } from "../_components/controls";
+import { AdminForm, FormPanel, ActionButton, Field, ImageField } from "../_components/controls";
 import { saveEvent, deleteEvent, toggleFeatured } from "./actions";
 
 export const metadata: Metadata = { title: "Events" };
@@ -25,11 +25,7 @@ export default async function AdminEventsPage({ searchParams }: { searchParams: 
       <AdminHeader title="Events" description="Create and manage hackathons, workshops, seminars and visits." />
 
       <div className="grid gap-8 xl:grid-cols-3">
-        <section className="admin-card h-fit xl:col-span-1" aria-labelledby="form-title">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 id="form-title" className="font-semibold">{editing ? "Edit event" : "Add event"}</h2>
-            {editing && <Link href="/admin/events" className="text-sm text-[var(--color-harvest-blue)] hover:underline">Cancel</Link>}
-          </div>
+        <FormPanel key={editing?.id ?? "new"} title={editing ? "Edit event" : "Add event"} defaultOpen={!!editing} cancelHref={editing ? "/admin/events" : undefined}>
           <AdminForm
             key={editing?.id ?? "new"}
             action={saveEvent.bind(null, editing?.id ?? null)}
@@ -63,7 +59,7 @@ export default async function AdminEventsPage({ searchParams }: { searchParams: 
               Feature on the homepage
             </label>
           </AdminForm>
-        </section>
+        </FormPanel>
 
         <section className="admin-card !p-0 overflow-hidden xl:col-span-2">
           <div className="overflow-x-auto">
@@ -74,7 +70,7 @@ export default async function AdminEventsPage({ searchParams }: { searchParams: 
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--color-line)] max-md:divide-y-0">
-                {events.length === 0 && <tr><td colSpan={4}><Empty>No events yet. Use the form to create your first one.</Empty></td></tr>}
+                {events.length === 0 && <tr><td colSpan={4}><Empty>No events yet. Tap “Show form” above to create your first one.</Empty></td></tr>}
                 {events.map((e) => (
                   <tr key={e.id} className={editing?.id === e.id ? "bg-[var(--color-paper)]" : ""}>
                     <td className="admin-td">
