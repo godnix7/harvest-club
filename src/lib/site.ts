@@ -25,13 +25,36 @@ export function categoryLabel(value: string): string {
   return EVENT_CATEGORIES[value] ?? value.replace(/_/g, " ").toLowerCase().replace(/^\w/, (c) => c.toUpperCase());
 }
 
+/** The club operates on Indian time. Servers (e.g. Vercel) run in UTC, so the zone must be explicit. */
+export const SITE_TIMEZONE = "Asia/Kolkata";
+export const SITE_UTC_OFFSET = "+05:30"; // India has no daylight saving
+
 export function formatDate(date: Date | string, withTime = false): string {
-  return new Date(date).toLocaleDateString("en-IN", {
+  return new Date(date).toLocaleString("en-IN", {
+    timeZone: SITE_TIMEZONE,
     day: "numeric",
     month: "long",
     year: "numeric",
-    ...(withTime ? { hour: "2-digit", minute: "2-digit" } : {}),
+    ...(withTime ? { hour: "numeric", minute: "2-digit", hour12: true } : {}),
   });
+}
+
+/** "YYYY-MM-DDTHH:mm" in Indian time, for <input type="datetime-local"> default values. */
+export function toDateTimeLocal(date: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: SITE_TIMEZONE,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).formatToParts(date);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "00";
+  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
+}
+
+/** Reads a datetime-local value as Indian time. Returns null when invalid. */
+export function parseDateTimeLocal(value: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return null;
+  const d = new Date(`${value}:00${SITE_UTC_OFFSET}`);
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
 export function initials(name: string): string {

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { currentAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/site";
-import { AdminHeader, Empty, StatusBadge } from "../_components/AdminPage";
+import { AdminHeader, Empty, StatusBadge, AdminList, AdminRow } from "../_components/AdminPage";
 import { AdminForm, FormPanel, ActionButton, Field } from "../_components/controls";
 import { createAdmin, setAdminActive, setAdminRole, setSettingsAccess, resetAdminPassword, deleteAdmin } from "./actions";
 import { PasswordField, ResetPasswordButton } from "./UserControls";
@@ -59,40 +59,45 @@ export default async function AdminUsersPage() {
 
         <section className="admin-card !p-0 overflow-hidden xl:col-span-2">
           {loadError && <p className="m-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{loadError}</p>}
-          <div className="overflow-x-auto">
-            <table className="stack-table min-w-full divide-y divide-[var(--color-line)]">
-              <thead className="bg-[var(--color-paper)]">
-                <tr><th className="admin-th">Admin</th><th className="admin-th">Site settings</th><th className="admin-th">Last sign-in</th><th className="admin-th">Status</th><th className="admin-th text-right">Actions</th></tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--color-line)] max-md:divide-y-0">
-                {users.length === 0 && !loadError && <tr><td colSpan={5}><Empty>No admins yet.</Empty></td></tr>}
-                {users.map((u) => (
-                  <tr key={u.id}>
-                    <td className="admin-td"><p className="font-medium">{u.name}{u.id === admin.uid && <span className="ml-2 text-xs font-normal text-[var(--color-muted)]">(you)</span>}</p><p className="text-xs text-[var(--color-muted)]">{u.email}</p><span className="mt-1 inline-block"><StatusBadge tone={u.role === "SUPER" ? "blue" : "gray"}>{u.role === "SUPER" ? "Super Admin" : "Admin"}</StatusBadge></span></td>
-                    <td className="admin-td">
-                      {u.role === "SUPER" ? (
-                        <StatusBadge tone="blue">Always</StatusBadge>
-                      ) : (
-                        <div className="flex flex-col items-start gap-1">
-                          <StatusBadge tone={u.canEditSettings ? "green" : "gray"}>{u.canEditSettings ? "✓ Allowed" : "Not allowed"}</StatusBadge>
-                          <ActionButton action={setSettingsAccess.bind(null, u.id, !u.canEditSettings)} label={u.canEditSettings ? "Revoke access" : "Allow access"} />
-                        </div>
-                      )}
-                    </td>
-                    <td className="admin-td whitespace-nowrap">{u.lastLoginAt ? formatDate(u.lastLoginAt, true) : "Never"}</td>
-                    <td className="admin-td"><StatusBadge tone={u.isActive ? "green" : "gray"}>{u.isActive ? "Active" : "Disabled"}</StatusBadge></td>
-                    <td className="admin-td">
-                      <div className="flex flex-wrap items-start gap-x-5 gap-y-1 md:justify-end">
+          {users.length === 0 && !loadError ? (
+            <Empty>No admins yet.</Empty>
+          ) : (
+            <AdminList>
+              {users.map((u) => {
+                const isYou = u.id === admin.uid;
+                return (
+                  <AdminRow
+                    key={u.id}
+                    title={<>{u.name}{isYou && <span className="ml-2 text-xs font-normal text-[var(--color-muted)]">(you)</span>}</>}
+                    badges={
+                      <>
+                        <StatusBadge tone={u.role === "SUPER" ? "blue" : "gray"}>{u.role === "SUPER" ? "Super Admin" : "Admin"}</StatusBadge>
+                        <StatusBadge tone={u.isActive ? "green" : "red"}>{u.isActive ? "Active" : "Disabled"}</StatusBadge>
+                        {u.role === "SUPER" ? (
+                          <StatusBadge tone="blue">Site settings: always</StatusBadge>
+                        ) : (
+                          <StatusBadge tone={u.canEditSettings ? "green" : "gray"}>{u.canEditSettings ? "✓ Site settings" : "No site settings"}</StatusBadge>
+                        )}
+                      </>
+                    }
+                    subtitle={u.email}
+                    details={`Last sign-in: ${u.lastLoginAt ? formatDate(u.lastLoginAt, true) : "never"}`}
+                    actions={
+                      <>
                         <ResetPasswordButton action={resetAdminPassword.bind(null, u.id)} name={u.name} />
-                        {u.id !== admin.uid && (
+                        {u.role !== "SUPER" && (
                           <ActionButton
-                            action={setAdminRole.bind(null, u.id, u.role === "SUPER" ? "ADMIN" : "SUPER")}
-                            label={u.role === "SUPER" ? "Make admin" : "Make super admin"}
-                            confirmText={u.role === "SUPER" ? `Remove Super Admin rights from ${u.name}?` : `Give ${u.name} full Super Admin rights, including managing other admins?`}
+                            action={setSettingsAccess.bind(null, u.id, !u.canEditSettings)}
+                            label={u.canEditSettings ? "Revoke settings access" : "Allow settings access"}
                           />
                         )}
-                        {u.id !== admin.uid && (
+                        {!isYou && (
                           <>
+                            <ActionButton
+                              action={setAdminRole.bind(null, u.id, u.role === "SUPER" ? "ADMIN" : "SUPER")}
+                              label={u.role === "SUPER" ? "Make admin" : "Make super admin"}
+                              confirmText={u.role === "SUPER" ? `Remove Super Admin rights from ${u.name}?` : `Give ${u.name} full Super Admin rights, including managing other admins?`}
+                            />
                             <ActionButton
                               action={setAdminActive.bind(null, u.id, !u.isActive)}
                               label={u.isActive ? "Disable" : "Enable"}
@@ -101,13 +106,13 @@ export default async function AdminUsersPage() {
                             <ActionButton action={deleteAdmin.bind(null, u.id)} label="Delete" variant="danger" confirmText={`Permanently delete ${u.name}'s admin account?`} />
                           </>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      </>
+                    }
+                  />
+                );
+              })}
+            </AdminList>
+          )}
         </section>
       </div>
     </div>

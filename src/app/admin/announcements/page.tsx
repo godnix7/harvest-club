@@ -1,7 +1,6 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { prisma, safe, formatDate } from "@/lib/site";
-import { AdminHeader, Empty, StatusBadge } from "../_components/AdminPage";
+import { AdminHeader, Empty, StatusBadge, AdminList, AdminRow, ChipLink } from "../_components/AdminPage";
 import { AdminForm, FormPanel, ActionButton, Field } from "../_components/controls";
 import LinkFields from "./LinkFields";
 import { saveAnnouncement, setPublished, deleteAnnouncement } from "./actions";
@@ -44,30 +43,34 @@ export default async function AdminAnnouncementsPage({ searchParams }: { searchP
         </FormPanel>
 
         <section className="admin-card !p-0 overflow-hidden xl:col-span-2">
-          <div className="overflow-x-auto">
-            <table className="stack-table min-w-full divide-y divide-[var(--color-line)]">
-              <thead className="bg-[var(--color-paper)]">
-                <tr><th className="admin-th">Announcement</th><th className="admin-th">Posted</th><th className="admin-th">Status</th><th className="admin-th text-right">Actions</th></tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--color-line)] max-md:divide-y-0">
-                {items.length === 0 && <tr><td colSpan={4}><Empty>No announcements yet.</Empty></td></tr>}
-                {items.map((a) => (
-                  <tr key={a.id}>
-                    <td className="admin-td"><p className="font-medium">{a.title}</p><p className="text-xs text-[var(--color-muted)]">{a.category || "General"}{a.isFeatured && " · Featured"}{a.linkUrl && " · Has link"}</p></td>
-                    <td className="admin-td whitespace-nowrap">{formatDate(a.createdAt)}</td>
-                    <td className="admin-td"><StatusBadge tone={a.isPublished ? "green" : "amber"}>{a.isPublished ? "Published" : "Draft"}</StatusBadge></td>
-                    <td className="admin-td">
-                      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 md:justify-end">
-                        <Link href={`/admin/announcements?edit=${a.id}`} className="text-sm font-medium text-[var(--color-harvest-blue)] hover:underline">Edit</Link>
-                        <ActionButton action={setPublished.bind(null, a.id, !a.isPublished)} label={a.isPublished ? "Unpublish" : "Publish"} />
-                        <ActionButton action={deleteAnnouncement.bind(null, a.id)} label="Delete" variant="danger" confirmText="Delete this announcement?" />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {items.length === 0 ? (
+            <Empty>No announcements yet.</Empty>
+          ) : (
+            <AdminList>
+              {items.map((a) => (
+                <AdminRow
+                  key={a.id}
+                  highlight={editing?.id === a.id}
+                  title={a.title}
+                  badges={
+                    <>
+                      <StatusBadge tone={a.isPublished ? "green" : "amber"}>{a.isPublished ? "Published" : "Draft"}</StatusBadge>
+                      {a.isFeatured && <StatusBadge tone="blue">Featured</StatusBadge>}
+                    </>
+                  }
+                  subtitle={`${a.category || "General"} · ${formatDate(a.createdAt, true)}`}
+                  details={a.linkUrl ? `Button: ${a.linkLabel || "Learn more"} → ${a.linkUrl}` : undefined}
+                  actions={
+                    <>
+                      <ChipLink href={`/admin/announcements?edit=${a.id}`}>Edit</ChipLink>
+                      <ActionButton action={setPublished.bind(null, a.id, !a.isPublished)} label={a.isPublished ? "Unpublish" : "Publish"} />
+                      <ActionButton action={deleteAnnouncement.bind(null, a.id)} label="Delete" variant="danger" confirmText="Delete this announcement?" />
+                    </>
+                  }
+                />
+              ))}
+            </AdminList>
+          )}
         </section>
       </div>
     </div>

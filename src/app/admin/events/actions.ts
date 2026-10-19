@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { guard, text, optional, errorMessage, httpUrl, type ActionResult } from "@/lib/admin";
-import { EVENT_CATEGORIES, EVENT_STATUSES } from "@/lib/site";
+import { EVENT_CATEGORIES, EVENT_STATUSES, parseDateTimeLocal } from "@/lib/site";
 
 function refresh(id?: string) {
   revalidatePath("/");
@@ -26,7 +26,8 @@ export async function saveEvent(id: string | null, fd: FormData): Promise<Action
   const coverImage = httpUrl(optional(fd, "imageUrl"));
 
   if (!title) return { error: "Title is required." };
-  if (!dateRaw || Number.isNaN(new Date(dateRaw).getTime())) return { error: "A valid date is required." };
+  const when = parseDateTimeLocal(dateRaw);
+  if (!when) return { error: "A valid date and time is required." };
   if (!description) return { error: "Please add a description." };
   if (!(category in EVENT_CATEGORIES)) return { error: "Choose a valid category." };
   if (!(status in EVENT_STATUSES)) return { error: "Choose a valid status." };
@@ -35,7 +36,7 @@ export async function saveEvent(id: string | null, fd: FormData): Promise<Action
   const data = {
     title,
     description,
-    date: new Date(dateRaw),
+    date: when,
     category,
     status,
     venue: optional(fd, "venue"),

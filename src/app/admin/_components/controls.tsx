@@ -50,19 +50,19 @@ export function ActionButton({
   action,
   label,
   confirmText,
-  variant = "link",
+  variant = "default",
 }: {
   action: () => Promise<ActionResult>;
   label: string;
   confirmText?: string;
-  variant?: "link" | "danger";
+  variant?: "default" | "danger";
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <span className="inline-flex flex-col items-end">
+    <span className="inline-flex max-w-full flex-col items-start">
       <button
         type="button"
         disabled={pending}
@@ -75,15 +75,11 @@ export function ActionButton({
             else router.refresh();
           });
         }}
-        className={
-          variant === "danger"
-            ? "text-sm font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
-            : "text-sm font-medium text-[var(--color-harvest-blue)] hover:underline disabled:opacity-50"
-        }
+        className={variant === "danger" ? "chip chip-danger" : "chip"}
       >
         {pending ? "Working…" : label}
       </button>
-      {error && <span className="mt-1 text-xs text-red-600">{error}</span>}
+      {error && <span className="mt-1 max-w-[16rem] text-xs text-red-600">{error}</span>}
     </span>
   );
 }

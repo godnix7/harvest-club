@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { prisma, safe, TEAM_CATEGORIES } from "@/lib/site";
-import { AdminHeader, Empty, StatusBadge } from "../_components/AdminPage";
+import { AdminHeader, Empty, StatusBadge, AdminList, AdminRow, ChipLink } from "../_components/AdminPage";
 import { AdminForm, FormPanel, ActionButton, Field, ImageField } from "../_components/controls";
 import { saveMember, deleteMember } from "./actions";
 
@@ -71,29 +71,33 @@ export default async function AdminTeamPage({ searchParams }: { searchParams: Pr
         </FormPanel>
 
         <section className="admin-card !p-0 overflow-hidden xl:col-span-2">
-          <div className="overflow-x-auto">
-            <table className="stack-table min-w-full divide-y divide-[var(--color-line)]">
-              <thead className="bg-[var(--color-paper)]">
-                <tr><th className="admin-th">Name</th><th className="admin-th">Group</th><th className="admin-th">Order</th><th className="admin-th text-right">Actions</th></tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--color-line)] max-md:divide-y-0">
-                {members.length === 0 && <tr><td colSpan={4}><Empty>No team members yet. Add your faculty coordinators and committee first.</Empty></td></tr>}
-                {members.map((m) => (
-                  <tr key={m.id}>
-                    <td className="admin-td"><p className="font-medium">{m.name}</p><p className="text-xs text-[var(--color-muted)]">{m.position}{m.year ? ` · ${m.year}` : ""}</p>{(m.email || m.phone) && <p className="text-xs text-[var(--color-muted)]">{[m.email, m.phone].filter(Boolean).join(" · ")}</p>}</td>
-                    <td className="admin-td"><StatusBadge tone={m.category === "PREVIOUS" ? "gray" : "green"}>{TEAM_CATEGORIES[m.category]?.split(" (")[0] ?? m.category}</StatusBadge>{m.teamGroupId && groupName.get(m.teamGroupId) && <p className="mt-1 text-xs text-[var(--color-muted)]">{groupName.get(m.teamGroupId)}</p>}</td>
-                    <td className="admin-td">{m.orderIndex}</td>
-                    <td className="admin-td">
-                      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 md:justify-end">
-                        <Link href={`/admin/team?edit=${m.id}`} className="text-sm font-medium text-[var(--color-harvest-blue)] hover:underline">Edit</Link>
-                        <ActionButton action={deleteMember.bind(null, m.id)} label="Delete" variant="danger" confirmText={`Remove ${m.name} from the team page?`} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {members.length === 0 ? (
+            <Empty>No team members yet. Add your faculty coordinators and committee first.</Empty>
+          ) : (
+            <AdminList>
+              {members.map((m) => (
+                <AdminRow
+                  key={m.id}
+                  highlight={editing?.id === m.id}
+                  title={m.name}
+                  badges={
+                    <>
+                      <StatusBadge tone={m.category === "PREVIOUS" ? "gray" : "green"}>{TEAM_CATEGORIES[m.category]?.split(" (")[0] ?? m.category}</StatusBadge>
+                      {m.teamGroupId && groupName.get(m.teamGroupId) && <StatusBadge tone="blue">{groupName.get(m.teamGroupId)}</StatusBadge>}
+                    </>
+                  }
+                  subtitle={`${m.position}${m.year ? ` · ${m.year}` : ""}`}
+                  details={[m.email, m.phone].filter(Boolean).join(" · ") || undefined}
+                  actions={
+                    <>
+                      <ChipLink href={`/admin/team?edit=${m.id}`}>Edit</ChipLink>
+                      <ActionButton action={deleteMember.bind(null, m.id)} label="Delete" variant="danger" confirmText={`Remove ${m.name} from the team page?`} />
+                    </>
+                  }
+                />
+              ))}
+            </AdminList>
+          )}
         </section>
       </div>
     </div>

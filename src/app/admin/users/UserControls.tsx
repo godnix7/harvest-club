@@ -82,7 +82,7 @@ export function ResetPasswordButton({
             }
           });
         }}
-        className="text-sm font-medium text-[var(--color-harvest-blue)] hover:underline disabled:opacity-50"
+        className="chip"
       >
         {pending ? "Working…" : "Reset password"}
       </button>

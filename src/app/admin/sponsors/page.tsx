@@ -1,7 +1,6 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { prisma, safe, SPONSOR_TIERS } from "@/lib/site";
-import { AdminHeader, Empty, StatusBadge } from "../_components/AdminPage";
+import { AdminHeader, Empty, StatusBadge, AdminList, AdminRow, ChipLink } from "../_components/AdminPage";
 import { AdminForm, FormPanel, ActionButton, Field, ImageField } from "../_components/controls";
 import { saveSponsor, setSponsorActive, deleteSponsor } from "./actions";
 
@@ -49,30 +48,33 @@ export default async function AdminSponsorsPage({ searchParams }: { searchParams
         </FormPanel>
 
         <section className="admin-card !p-0 overflow-hidden xl:col-span-2">
-          <div className="overflow-x-auto">
-            <table className="stack-table min-w-full divide-y divide-[var(--color-line)]">
-              <thead className="bg-[var(--color-paper)]">
-                <tr><th className="admin-th">Sponsor</th><th className="admin-th">Tier</th><th className="admin-th">Visibility</th><th className="admin-th text-right">Actions</th></tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--color-line)] max-md:divide-y-0">
-                {sponsors.length === 0 && <tr><td colSpan={4}><Empty>No sponsors yet.</Empty></td></tr>}
-                {sponsors.map((s) => (
-                  <tr key={s.id}>
-                    <td className="admin-td"><p className="font-medium">{s.name}</p>{s.websiteUrl && <p className="max-w-[16rem] truncate text-xs text-[var(--color-muted)]">{s.websiteUrl}</p>}</td>
-                    <td className="admin-td capitalize">{s.tier.toLowerCase()}</td>
-                    <td className="admin-td"><StatusBadge tone={s.isActive ? "green" : "gray"}>{s.isActive ? "Visible" : "Hidden"}</StatusBadge></td>
-                    <td className="admin-td">
-                      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 md:justify-end">
-                        <Link href={`/admin/sponsors?edit=${s.id}`} className="text-sm font-medium text-[var(--color-harvest-blue)] hover:underline">Edit</Link>
-                        <ActionButton action={setSponsorActive.bind(null, s.id, !s.isActive)} label={s.isActive ? "Hide" : "Show"} />
-                        <ActionButton action={deleteSponsor.bind(null, s.id)} label="Delete" variant="danger" confirmText={`Remove ${s.name}?`} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {sponsors.length === 0 ? (
+            <Empty>No sponsors yet.</Empty>
+          ) : (
+            <AdminList>
+              {sponsors.map((s) => (
+                <AdminRow
+                  key={s.id}
+                  highlight={editing?.id === s.id}
+                  title={s.name}
+                  badges={
+                    <>
+                      <StatusBadge tone="blue">{s.tier[0] + s.tier.slice(1).toLowerCase()}</StatusBadge>
+                      <StatusBadge tone={s.isActive ? "green" : "gray"}>{s.isActive ? "Visible" : "Hidden"}</StatusBadge>
+                    </>
+                  }
+                  subtitle={s.websiteUrl || undefined}
+                  actions={
+                    <>
+                      <ChipLink href={`/admin/sponsors?edit=${s.id}`}>Edit</ChipLink>
+                      <ActionButton action={setSponsorActive.bind(null, s.id, !s.isActive)} label={s.isActive ? "Hide" : "Show"} />
+                      <ActionButton action={deleteSponsor.bind(null, s.id)} label="Delete" variant="danger" confirmText={`Remove ${s.name}?`} />
+                    </>
+                  }
+                />
+              ))}
+            </AdminList>
+          )}
         </section>
       </div>
     </div>
