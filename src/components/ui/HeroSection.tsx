@@ -2,14 +2,13 @@ import Link from "next/link";
 import { ArrowRight, Leaf } from "lucide-react";
 
 type Props = {
-  stats: { label: string; value: number }[];
   clubName: string;
   tagline: string;
   title: string;
   subtitle: string;
 };
 
-export default function HeroSection({ stats, clubName, tagline, title, subtitle }: Props) {
+export default function HeroSection({ clubName, tagline, title, subtitle }: Props) {
   return (
     <section className="relative overflow-hidden bg-gradient-soft">
       {/* Soft brand-colour glows */}
@@ -40,16 +39,6 @@ export default function HeroSection({ stats, clubName, tagline, title, subtitle 
           </Link>
         </div>
 
-        {stats.length > 0 && (
-          <dl className="mt-10 grid w-full max-w-2xl grid-cols-3 gap-2 sm:mt-14 sm:gap-4">
-            {stats.map((s) => (
-              <div key={s.label} className="card !rounded-xl px-2 py-4 sm:py-5">
-                <dd className="gradient-text text-3xl font-extrabold sm:text-4xl">{s.value}</dd>
-                <dt className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-muted)] sm:text-xs">{s.label}</dt>
-              </div>
-            ))}
-          </dl>
-        )}
       </div>
     </section>
   );

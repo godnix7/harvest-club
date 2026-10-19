@@ -18,29 +18,19 @@ const pillars = [
 
 export default async function Home() {
   // One parallel wave of queries (a single database round trip) instead of a chain.
-  const [settings, featured, upcoming, sponsors, announcements, statusCounts] = await Promise.all([
+  const [settings, featured, upcoming, sponsors, announcements] = await Promise.all([
     getSiteConfig(),
     safe(() => prisma.event.findMany({ where: { isFeatured: true }, orderBy: { date: "desc" }, take: 3 }), []),
     safe(() => prisma.event.findMany({ where: { status: { in: ["UPCOMING", "ONGOING"] }, date: { gte: startOfYesterday() } }, orderBy: { date: "asc" }, take: 1 }), []),
     safe(() => prisma.sponsor.findMany({ where: { isActive: true }, orderBy: [{ orderIndex: "asc" }, { createdAt: "asc" }] }), []),
     safe(() => prisma.announcement.findMany({ where: { isPublished: true }, orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }], take: 3 }), []),
-    safe(() => prisma.event.groupBy({ by: ["status"], _count: true }), []),
   ]);
-
-  const totalEvents = statusCounts.reduce((n, c) => n + c._count, 0);
-  const completed = statusCounts.find((c) => c.status === "COMPLETED")?._count ?? 0;
-
-  const stats = [
-    { label: "Events organised", value: completed },
-    { label: "Total events", value: totalEvents },
-    { label: "Partners", value: sponsors.length },
-  ].filter((s) => s.value > 0);
 
   const next = upcoming[0];
 
   return (
     <>
-      <HeroSection stats={stats} clubName={settings.clubName} tagline={settings.tagline} title={settings.heroTitle} subtitle={settings.heroSubtitle} />
+      <HeroSection clubName={settings.clubName} tagline={settings.tagline} title={settings.heroTitle} subtitle={settings.heroSubtitle} />
 
       {next && (
         <section className="border-b border-[var(--color-line)] bg-white">
